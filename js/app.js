@@ -6,6 +6,7 @@
   var LS_CFG = 'cot3d.cfg.v1';
   var LS_JOB = 'cot3d.job.v1';
   var LS_THEME = 'cot3d.theme.v1';
+  var LS_PALETTE = 'cot3d.palette.v1';
 
   // ------------------------------------------------------------------
   // Persistencia
@@ -62,7 +63,7 @@
   // ------------------------------------------------------------------
   var S = {
     cfg: null, job: null, mode: 'taller', tab: 'cotizar', fromLink: false,
-    linkRates: null, imp: null, link: '', confirmReset: false, theme: 'auto'
+    linkRates: null, imp: null, link: '', confirmReset: false, theme: 'auto', palette: ''
   };
   UI.bind(S);
 
@@ -74,9 +75,17 @@
     var dark = S.theme === 'dark' || (S.theme !== 'light' && !!(mqDark && mqDark.matches));
     document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
   }
+  /* Paleta alternativa (experimental): '' = espresso + ámbar */
+  function applyPalette() {
+    if (S.palette) document.documentElement.setAttribute('data-palette', S.palette);
+    else document.documentElement.removeAttribute('data-palette');
+  }
 
   function initState() {
-    try { S.theme = window.localStorage.getItem(LS_THEME) || 'auto'; } catch (e) { /* sin localStorage */ }
+    try {
+      S.theme = window.localStorage.getItem(LS_THEME) || 'auto';
+      S.palette = window.localStorage.getItem(LS_PALETTE) || '';
+    } catch (e) { /* sin localStorage */ }
     var linkRates = ratesFromHash();
     if (linkRates) {
       S.fromLink = true;
@@ -328,6 +337,11 @@
         try { window.localStorage.setItem(LS_THEME, S.theme); } catch (e) { /* sin localStorage */ }
         applyTheme(); renderApp();
         break;
+      case 'palette':
+        S.palette = el.getAttribute('data-palette-val') || '';
+        try { window.localStorage.setItem(LS_PALETTE, S.palette); } catch (e) { /* sin localStorage */ }
+        applyPalette(); renderApp();
+        break;
       case 'tab':
         S.tab = el.getAttribute('data-tab'); S.confirmReset = false; renderApp(); window.scrollTo(0, 0);
         break;
@@ -433,6 +447,7 @@
   function start() {
     initState();
     applyTheme();
+    applyPalette();
     // en modo "auto" el tema sigue al sistema en vivo
     if (mqDark && mqDark.addEventListener) mqDark.addEventListener('change', applyTheme);
     document.addEventListener('input', onInput);
