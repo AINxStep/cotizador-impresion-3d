@@ -1,0 +1,14 @@
+{
+  "name": "cotizador-impresion-3d",
+  "version": "1.0.0",
+  "description": "Cotizador en línea para proyectos de impresión 3D: material, tiempo de máquina, energía, mano de obra, fallas, margen, comisiones e IVA.",
+  "private": true,
+  "license": "MIT",
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "serve": "python3 -m http.server 8080"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
