@@ -121,6 +121,21 @@
   // ------------------------------------------------------------------
   var LOGO = '<svg viewBox="0 0 32 32" width="34" height="34" aria-hidden="true"><path d="M16 3 28 9.5 16 16 4 9.5z" fill="var(--accent)"/><path d="M4 14.2 16 20.7 28 14.2" fill="none" stroke="var(--accent)" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/><path d="M4 19.4 16 25.9 28 19.4" fill="none" stroke="var(--accent)" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round" opacity=".55"/></svg>';
 
+  var ICO = {
+    auto: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 3.5a8.5 8.5 0 0 1 0 17z" fill="currentColor" stroke="none"/></svg>',
+    light: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2M12 19.5v2M4.8 4.8l1.5 1.5M17.7 17.7l1.5 1.5M2.5 12h2M19.5 12h2M4.8 19.2l1.5-1.5M17.7 6.3l1.5-1.5"/></svg>',
+    dark: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.5 13.4A8.5 8.5 0 1 1 10.6 3.5a6.8 6.8 0 0 0 9.9 9.9z"/></svg>'
+  };
+
+  /** Selector de tema: automático (sigue al sistema), claro u oscuro. */
+  function themeSeg() {
+    var t = S.theme || 'auto';
+    var items = [['auto', 'Automático'], ['light', 'Claro'], ['dark', 'Oscuro']];
+    return '<div class="seg theme" role="group" aria-label="Tema de color">' + items.map(function (x) {
+      return '<button type="button" data-act="theme" data-theme-val="' + x[0] + '" aria-pressed="' + (t === x[0]) + '" title="' + x[1] + '" aria-label="' + x[1] + '">' + ICO[x[0]] + '</button>';
+    }).join('') + '</div>';
+  }
+
   function header(rates) {
     var biz = S.mode === 'cliente' ? rates.biz : S.cfg.biz;
     var title = S.fromLink && biz.name ? biz.name : 'Cotizador de impresión 3D';
@@ -130,7 +145,7 @@
       '<button type="button" data-act="mode" data-mode="taller" aria-pressed="' + (S.mode === 'taller') + '">Taller</button>' +
       '<button type="button" data-act="mode" data-mode="cliente" aria-pressed="' + (S.mode === 'cliente') + '">Cliente</button></div>';
     return '<header class="topbar"><div class="wrap"><div class="brand">' + LOGO +
-      '<div><strong>' + esc(title) + '</strong><span class="sub">' + esc(sub) + '</span></div></div>' + seg + '</div></header>';
+      '<div><strong>' + esc(title) + '</strong><span class="sub">' + esc(sub) + '</span></div></div>' + seg + themeSeg() + '</div></header>';
   }
 
   function tabs() {

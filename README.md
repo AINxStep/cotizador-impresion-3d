@@ -17,7 +17,7 @@ Es una página estática (HTML + CSS + JavaScript, sin servidor ni dependencias)
 - Margen sobre el precio **o** multiplicador sobre el costo, con la equivalencia entre ambos.
 - Moneda configurable (MXN por defecto), IVA opcional y redondeo del precio hacia arriba.
 - Cotización para el cliente: copiar como texto o imprimir / guardar como PDF (siempre sin costos internos).
-- Enlace para clientes, respaldo de la configuración en un archivo JSON y tema claro/oscuro automático.
+- Enlace para clientes, respaldo de la configuración en un archivo JSON y selector de tema claro, oscuro o automático.
 - Tu configuración se guarda sólo en tu navegador (`localStorage`).
 
 > Todos los valores iniciales son **ejemplos**. Reemplázalos con los de tu taller en la pestaña *Configuración del taller*.

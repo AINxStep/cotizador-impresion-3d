@@ -22,6 +22,8 @@
   --radius: 10px;
   --radius-sm: 6px;
 
+  color-scheme: light;
+
   --font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
 
@@ -47,42 +49,41 @@
   --c-profit: #5f7f3c;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #16110c;
-    --surface: #1f1913;
-    --surface-2: #282119;
-    --ink: #f1e9db;
-    --muted: #a39481;
-    --line: #3a3227;
-    --accent: #f0a848;
-    --accent-ink: #241500;
-    --accent-soft: #352712;
-    --good: #94c973;
-    --warn: #f0b35c;
-    --warn-soft: #2f2410;
-    --bad: #e5876f;
-    --bad-soft: #331b14;
-    --info-soft: #1d2830;
-    --info: #8fb8d4;
-    --shadow: 0 1px 2px rgba(0, 0, 0, .45);
-    --ticket-bg: #100c07;
-    --ticket-ink: #f1e9db;
-    --ticket-muted: #998b75;
-    --ticket-accent: #ffc179;
-    --lines-light: repeating-linear-gradient(0deg, transparent 0 3px, rgba(255, 232, 200, .028) 3px 4px);
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #16110c;
+  --surface: #1f1913;
+  --surface-2: #282119;
+  --ink: #f1e9db;
+  --muted: #a39481;
+  --line: #3a3227;
+  --accent: #f0a848;
+  --accent-ink: #241500;
+  --accent-soft: #352712;
+  --good: #94c973;
+  --warn: #f0b35c;
+  --warn-soft: #2f2410;
+  --bad: #e5876f;
+  --bad-soft: #331b14;
+  --info-soft: #1d2830;
+  --info: #8fb8d4;
+  --shadow: 0 1px 2px rgba(0, 0, 0, .45);
+  --ticket-bg: #100c07;
+  --ticket-ink: #f1e9db;
+  --ticket-muted: #998b75;
+  --ticket-accent: #ffc179;
+  --lines-light: repeating-linear-gradient(0deg, transparent 0 3px, rgba(255, 232, 200, .028) 3px 4px);
 
-    /* mismas categorías, iluminadas para el fondo oscuro */
-    --c-material: #e0704a;
-    --c-machine: #7d9cba;
-    --c-energy: #e8bf5a;
-    --c-failure: #c96064;
-    --c-labor: #a184b0;
-    --c-other: #9a9484;
-    --c-fees: #857c6b;
-    --c-ship: #c4bca9;
-    --c-profit: #8fb060;
-  }
+  /* mismas categorías, iluminadas para el fondo oscuro */
+  --c-material: #e0704a;
+  --c-machine: #7d9cba;
+  --c-energy: #e8bf5a;
+  --c-failure: #c96064;
+  --c-labor: #a184b0;
+  --c-other: #9a9484;
+  --c-fees: #857c6b;
+  --c-ship: #c4bca9;
+  --c-profit: #8fb060;
 }
 
 * { box-sizing: border-box; }
@@ -122,6 +123,9 @@ a { color: var(--accent); }
 .seg { display: inline-flex; background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; padding: 3px; }
 .seg button { border: 0; background: transparent; padding: 6px 15px; border-radius: 5px; cursor: pointer; color: var(--muted); font-size: 11.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
 .seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+.seg.theme { padding: 2px; }
+.seg.theme button { padding: 5px 9px; display: inline-flex; align-items: center; }
+.seg.theme svg { width: 14px; height: 14px; display: block; }
 
 .tabs { background: var(--surface); border-bottom: 1px solid var(--line); }
 .tabs .wrap { display: flex; gap: 2px; overflow-x: auto; }

@@ -5,6 +5,7 @@
   var Calc = window.Calc, Importers = window.Importers, Defaults = window.Defaults, UI = window.UI;
   var LS_CFG = 'cot3d.cfg.v1';
   var LS_JOB = 'cot3d.job.v1';
+  var LS_THEME = 'cot3d.theme.v1';
 
   // ------------------------------------------------------------------
   // Persistencia
@@ -61,11 +62,21 @@
   // ------------------------------------------------------------------
   var S = {
     cfg: null, job: null, mode: 'taller', tab: 'cotizar', fromLink: false,
-    linkRates: null, imp: null, link: '', confirmReset: false
+    linkRates: null, imp: null, link: '', confirmReset: false, theme: 'auto'
   };
   UI.bind(S);
 
+  // ------------------------------------------------------------------
+  // Tema claro / oscuro / automático
+  // ------------------------------------------------------------------
+  var mqDark = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+  function applyTheme() {
+    var dark = S.theme === 'dark' || (S.theme !== 'light' && !!(mqDark && mqDark.matches));
+    document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+  }
+
   function initState() {
+    try { S.theme = window.localStorage.getItem(LS_THEME) || 'auto'; } catch (e) { /* sin localStorage */ }
     var linkRates = ratesFromHash();
     if (linkRates) {
       S.fromLink = true;
@@ -312,6 +323,11 @@
         if (S.mode === 'cliente') S.tab = 'cotizar';
         renderApp(); window.scrollTo(0, 0);
         break;
+      case 'theme':
+        S.theme = el.getAttribute('data-theme-val') || 'auto';
+        try { window.localStorage.setItem(LS_THEME, S.theme); } catch (e) { /* sin localStorage */ }
+        applyTheme(); renderApp();
+        break;
       case 'tab':
         S.tab = el.getAttribute('data-tab'); S.confirmReset = false; renderApp(); window.scrollTo(0, 0);
         break;
@@ -416,6 +432,9 @@
   // ------------------------------------------------------------------
   function start() {
     initState();
+    applyTheme();
+    // en modo "auto" el tema sigue al sistema en vivo
+    if (mqDark && mqDark.addEventListener) mqDark.addEventListener('change', applyTheme);
     document.addEventListener('input', onInput);
     document.addEventListener('change', function (e) { onChangeSpecial(e); onInput(e); });
     document.addEventListener('click', onClick);
