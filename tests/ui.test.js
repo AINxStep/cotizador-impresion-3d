@@ -43,6 +43,13 @@ test('el formulario ofrece la relación, las piezas por placa o placas por pieza
   assert.match(split, /<option value="split" selected>/);
 });
 
+test('la pestaña de cotización ofrece empezar una cotización nueva', () => {
+  bindJob({});
+  const h = UI.jobForm(null);
+  assert.match(h, /data-act="new-quote"/);
+  assert.match(h, /Nueva cotización/);
+});
+
 test('resultado del taller: piezas, placas y precio por la unidad elegida', () => {
   const job = bindJob({ plates: 3, rel: 'multi', ppp: 12, by: 'plate' });
   const q = Calc.computeQuote(cfg, job);

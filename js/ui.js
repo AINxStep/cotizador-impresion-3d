@@ -247,7 +247,9 @@
     var more = (extras.length || urgent)
       ? '<section class="card"><h2>Trabajo adicional</h2><div class="grid">' + extras.join('') + urgent + '</div></section>' : '';
 
-    var project = '<section class="card"><h2>Proyecto</h2><div class="grid two">' +
+    var project = '<section class="card"><div class="card-head"><h2>Proyecto</h2>' +
+      '<button type="button" class="btn small ' + (S.confirmNew ? 'danger' : 'ghost') + '" data-act="new-quote">' +
+      (S.confirmNew ? '¿Borrar todo? Pulsa de nuevo' : 'Nueva cotización') + '</button></div><div class="grid two">' +
       field({ path: 'job.name', type: 'text', label: 'Nombre del proyecto', placeholder: 'Ej. Soporte para audífonos' }) +
       field({ path: 'job.client', type: 'text', label: 'Cliente', placeholder: 'Opcional' }) + '</div></section>';
 

@@ -154,7 +154,10 @@ main { padding: 22px 0 100px; }
 
 /* secciones numeradas en el formulario (01, 02, …) */
 .col-form { counter-reset: sec; }
-.col-form .card > h2::before {
+.card-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 4px; }
+.card-head > h2 { margin: 0; }
+
+.col-form .card h2::before {
   counter-increment: sec;
   content: counter(sec, decimal-leading-zero);
   display: inline-block;

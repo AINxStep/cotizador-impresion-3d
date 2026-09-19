@@ -62,7 +62,7 @@
   // ------------------------------------------------------------------
   var S = {
     cfg: null, job: null, mode: 'taller', tab: 'cotizar', fromLink: false,
-    linkRates: null, imp: null, link: '', confirmReset: false, theme: 'auto'
+    linkRates: null, imp: null, link: '', confirmReset: false, confirmNew: false, theme: 'auto'
   };
   UI.bind(S);
 
@@ -300,6 +300,7 @@
     else v = t.value;
     UI.setPath(S, path, v);
     S.confirmReset = false;
+    S.confirmNew = false;
     if (path === 'job.rel' || path === 'job.ppl') {
       if (S.imp) { S.imp.relSet = true; S.imp.autoPpl = false; }
       // al elegir "una pieza en varias placas", lo más común es que todas las placas formen una pieza
@@ -328,7 +329,7 @@
         applyTheme(); renderApp();
         break;
       case 'tab':
-        S.tab = el.getAttribute('data-tab'); S.confirmReset = false; renderApp(); window.scrollTo(0, 0);
+        S.tab = el.getAttribute('data-tab'); S.confirmReset = false; S.confirmNew = false; renderApp(); window.scrollTo(0, 0);
         break;
       case 'rel-split': // las placas del archivo forman una sola pieza
         S.job.rel = 'split'; S.job.ppl = Math.max(1, Number(S.job.plates) || 1);
@@ -347,6 +348,14 @@
         break;
       }
       case 'rm-line': S.job.lines.splice(i, 1); renderApp(); persist(); break;
+      case 'new-quote':
+        if (!S.confirmNew) { S.confirmNew = true; renderApp(); break; }
+        S.job = Defaults.makeJob(S.cfg);
+        S.job.lines[0].g = 0; S.job.hours = 0; S.job.minutes = 0; // cotización en blanco, sin los datos de ejemplo
+        S.imp = null; S.confirmNew = false;
+        renderApp(); persist();
+        toast('Cotización en blanco — captura los datos del trabajo');
+        break;
       case 'add-printer':
         S.cfg.printers.push({ id: Defaults.uid('p'), name: 'Nueva impresora', price: 10000, lifeH: 4000, salvagePct: 10, powerW: 150, maintPerH: 1 });
         renderApp(); persist(); break;
