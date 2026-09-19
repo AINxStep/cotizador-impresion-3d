@@ -1,5 +1,7 @@
 # Cotizador de Impresión 3D
 
+[![Demo en vivo](https://img.shields.io/badge/demo-en_vivo-2ea44f?logo=githubpages&logoColor=white)](https://ainxstep.github.io/cotizador-impresion-3d/)
+[![Licencia](https://img.shields.io/badge/licencia-MIT-007ec6)](LICENSE)
 [![Pruebas](https://github.com/AINxStep/cotizador-impresion-3d/actions/workflows/tests.yml/badge.svg)](https://github.com/AINxStep/cotizador-impresion-3d/actions/workflows/tests.yml)
 
 Calculadora en línea para cotizar proyectos de impresión 3D con **todos los costos** a la vista: material, tiempo de máquina, electricidad, mano de obra, fallas, postprocesado, empaque, comisiones, margen e IVA.
