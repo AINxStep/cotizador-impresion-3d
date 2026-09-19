@@ -1,11 +1,30 @@
 # Cotizador de Impresión 3D
 
+[![Pruebas](https://github.com/AINxStep/cotizador-impresion-3d/actions/workflows/tests.yml/badge.svg)](https://github.com/AINxStep/cotizador-impresion-3d/actions/workflows/tests.yml)
+
 Calculadora en línea para cotizar proyectos de impresión 3D con **todos los costos** a la vista: material, tiempo de máquina, electricidad, mano de obra, fallas, postprocesado, empaque, comisiones, margen e IVA.
 
 Es una página estática (HTML + CSS + JavaScript, sin servidor ni dependencias), pensada para quien se dedique a la impresión 3D, con dos modos:
 
 - **Taller:** cada persona configura sus propias impresoras, materiales y tarifas, y ve el desglose completo de costos, utilidad y margen real.
 - **Cliente:** muestra únicamente el precio y un resumen. Se puede compartir un enlace que lleva **sólo tus tarifas de venta**, nunca tus costos, márgenes ni utilidad.
+
+<p align="center">
+  <img src="docs/captura-claro.png" alt="Tema claro" width="49%">
+  <img src="docs/captura-oscuro.png" alt="Tema oscuro" width="49%">
+</p>
+
+## Contenido
+
+- [Qué incluye](#qué-incluye)
+- [Generar el archivo del laminador](#cómo-generar-el-archivo-para-subirlo-a-la-página)
+- [Piezas y placas](#piezas-y-placas)
+- [Cómo se calcula](#cómo-se-calcula)
+- [Usarlo](#usarlo)
+- [Publicar en GitHub Pages](#publicar-en-github-pages)
+- [Pruebas](#pruebas)
+- [Estructura](#estructura)
+- [Ideas para más adelante](#ideas-para-más-adelante)
 
 ## Qué incluye
 
@@ -18,7 +37,8 @@ Es una página estática (HTML + CSS + JavaScript, sin servidor ni dependencias)
 - Moneda configurable (MXN por defecto), IVA opcional y redondeo del precio hacia arriba.
 - Cotización para el cliente: copiar como texto o imprimir / guardar como PDF (siempre sin costos internos).
 - Enlace para clientes, respaldo de la configuración en un archivo JSON y selector de tema claro, oscuro o automático.
-- Tu configuración se guarda sólo en tu navegador (`localStorage`).
+- Botón **Nueva cotización**: limpia los datos del trabajo (pesos, tiempos y archivo importado) para empezar de cero sin restos de la cotización anterior.
+- Tu configuración y el trabajo en curso se guardan sólo en tu navegador (`localStorage`).
 
 > Todos los valores iniciales son **ejemplos**. Reemplázalos con los de tu taller en la pestaña *Configuración del taller*.
 
@@ -169,6 +189,7 @@ js/defaults.js        Valores iniciales de ejemplo
 js/ui.js              Constructores de HTML y formato
 js/app.js             Estado, eventos y persistencia
 tests/                Pruebas y ayudantes para generar archivos de ejemplo
+docs/                 Capturas de pantalla usadas en este README
 ```
 
 ## Fuentes consultadas
