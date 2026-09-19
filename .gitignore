@@ -1,3 +1,7 @@
 node_modules/
 .DS_Store
 *.log
+
+# PDFs guardados al imprimir la cotización desde el navegador
+cotizador*.pdf
+*Cotizador*.pdf
