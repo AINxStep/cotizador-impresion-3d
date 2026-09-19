@@ -186,6 +186,7 @@ function rng(seed) { let s = seed; return () => (s = (s * 1664525 + 1013904223) 
 test('el precio del modo Cliente coincide con el del modo Taller (config por defecto)', () => {
   const cfg = Defaults.makeConfig();
   cfg.modules.fees.on = true;
+  cfg.modules.multicolor.on = true;
   cfg.pricing.method = 'margin';
   const rates = Calc.deriveRates(cfg);
   const rand = rng(42);
@@ -200,7 +201,9 @@ test('el precio del modo Cliente coincide con el del modo Taller (config por def
       plates: 1 + Math.floor(rand() * 6), ppp: 1 + Math.floor(rand() * 8),
       designH: rand() < 0.3 ? rand() * 3 : 0, postMin: rand() < 0.5 ? Math.round(rand() * 45) : 0,
       supplies: rand() < 0.5 ? Math.round(rand() * 20) : 0,
-      purgeG: 0, extraMin: 0, urgent: rand() < 0.3, shipping: rand() < 0.3 ? 120 : 0
+      purgeG: rand() < 0.4 ? Math.round(rand() * 30) : 0,
+      extraMin: rand() < 0.4 ? Math.round(rand() * 20) : 0,
+      urgent: rand() < 0.3, shipping: rand() < 0.3 ? 120 : 0
     };
     const a = Calc.computeQuote(cfg, job);
     const b = Calc.quoteFromRates(rates, job);
@@ -216,9 +219,44 @@ test('la consistencia también se cumple con multiplicador, sin módulos y con I
   cfg.money.taxOn = false;
   cfg.money.rounding = 0;
   for (const k of ['design', 'post', 'packaging', 'fees', 'minimum', 'rush', 'discounts']) cfg.modules[k].on = false;
+  cfg.modules.multicolor.on = true;
   const rates = Calc.deriveRates(cfg);
-  const job = { printerId: cfg.printers[0].id, lines: [{ materialId: cfg.materials[1].id, g: 123 }], hours: 7, minutes: 20, plates: 3, ppp: 2, urgent: true };
+  const job = { printerId: cfg.printers[0].id, lines: [{ materialId: cfg.materials[1].id, g: 123 }], hours: 7, minutes: 20, plates: 3, ppp: 2, purgeG: 8, extraMin: 11, urgent: true };
   close(Calc.computeQuote(cfg, job).total, Calc.quoteFromRates(rates, job).total, 0.01);
+});
+
+test('purga y minutos extra (multicolor) se replican en el modo Cliente', () => {
+  const cfg = Defaults.makeConfig();
+  cfg.modules.multicolor.on = true;
+  const rates = Calc.deriveRates(cfg);
+  assert.equal(rates.mods.multicolor, true);
+  // la purga se cobra sin merma: su tarifa es pg / (1 + merma)
+  close(rates.mats[0].pgPurge, rates.mats[0].pg / 1.05, 1e-5);
+  const job = {
+    printerId: cfg.printers[0].id,
+    // el material principal es el de más gramos (materials[1]); la purga se cobra a su tarifa
+    lines: [{ materialId: cfg.materials[0].id, g: 10 }, { materialId: cfg.materials[1].id, g: 40 }],
+    hours: 4, minutes: 0, plates: 2, ppp: 1,
+    designH: 0, postMin: 0, supplies: 0, purgeG: 12, extraMin: 9, urgent: false, shipping: 0
+  };
+  const a = Calc.computeQuote(cfg, job);
+  const b = Calc.quoteFromRates(rates, job);
+  close(a.N, b.N, 0.01);
+  close(a.total, b.total, 0.01);
+});
+
+test('tarifas de un enlace antiguo (sin multicolor) no truenan', () => {
+  const cfg = Defaults.makeConfig();
+  const rates = Calc.deriveRates(cfg);
+  delete rates.mods.multicolor;
+  rates.mats.forEach((m) => delete m.pgPurge);
+  const job = {
+    printerId: cfg.printers[0].id, lines: [{ materialId: cfg.materials[0].id, g: 50 }],
+    hours: 2, minutes: 0, plates: 1, ppp: 1,
+    designH: 0, postMin: 0, supplies: 0, purgeG: 20, extraMin: 15, urgent: false, shipping: 0
+  };
+  const b = Calc.quoteFromRates(rates, job);
+  assert.ok(Number.isFinite(b.total));
 });
 
 test('las tarifas públicas NO contienen costos, márgenes ni utilidad', () => {

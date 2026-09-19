@@ -218,6 +218,7 @@
   function deriveRates(cfg) {
     var mods = cfg.modules || {};
     var on = function (k) { return !!(mods[k] && mods[k].on); };
+    var multi = on('multicolor');
     var firstPrinter = (cfg.printers || [])[0];
     var zero = {
       printerId: firstPrinter ? firstPrinter.id : '', lines: [], hours: 0, minutes: 0,
@@ -238,7 +239,12 @@
       },
       money: { code: (cfg.money && cfg.money.code) || 'MXN', taxRate: t.taxRate, taxOn: t.taxOn, rounding: t.roundTo },
       mats: (cfg.materials || []).map(function (m) {
-        return { id: m.id, name: m.name, pg: r6((N({ plates: 1, lines: [{ materialId: m.id, g: 1000 }] }) - base1) / 1000) };
+        return {
+          id: m.id, name: m.name,
+          pg: r6((N({ plates: 1, lines: [{ materialId: m.id, g: 1000 }] }) - base1) / 1000),
+          // la purga se cobra como gramos del material principal, SIN merma
+          pgPurge: multi ? r6((N({ plates: 1, lines: [{ materialId: m.id, g: 0 }], purgeG: 1000 }) - base1) / 1000) : 0
+        };
       }),
       machines: (cfg.printers || []).map(function (p) {
         return { id: p.id, name: p.name, ph: r6((N({ plates: 1, printerId: p.id, hours: 100 }) - base1) / 100) };
@@ -250,7 +256,7 @@
         postMin: on('post') ? r6((N({ plates: 1, ppp: 1, postMin: 1000 }) - base1) / 1000) : 0,
         supply: on('post') ? r6((N({ plates: 1, ppp: 1, supplies: 1000 }) - base1) / 1000) : 0
       },
-      mods: { design: on('design'), post: on('post'), rush: on('rush') && t.rushPct > 0 },
+      mods: { design: on('design'), post: on('post'), rush: on('rush') && t.rushPct > 0, multicolor: multi },
       tail: {
         rushPct: t.rushPct, tiers: t.tiers, feePct: t.feePct, feeFixed: t.feeFixed,
         minAmount: t.minAmount, roundTo: t.roundTo, taxRate: t.taxRate, taxOn: t.taxOn
@@ -261,19 +267,23 @@
   /** Precio a partir de tarifas de venta (modo Cliente). No expone costos. */
   function quoteFromRates(rates, job) {
     var b = rates.base;
+    var multi = !!(rates.mods && rates.mods.multicolor);
     var s = jobShape(null, job);
     var plates = s.plates, pieces = s.pieces;
-    var H = s.minutesPerPlate / 60 * plates;
+    var minutes = s.minutesPerPlate + (multi ? pos(job.extraMin) : 0);
+    var H = minutes / 60 * plates;
 
     var N = b.job + b.plate * plates;
-    var gramsNet = 0;
+    var gramsNet = 0, primary = null;
     (job.lines || []).forEach(function (l) {
       var m = findById(rates.mats, l.materialId);
       if (!m) return;
       var g = pos(l.g) * plates;
       gramsNet += g;
       N += g * m.pg;
+      if (!primary || g > primary.g) primary = { m: m, g: g };
     });
+    if (multi && primary) N += pos(job.purgeG) * plates * (primary.m.pgPurge || 0);
     var mach = findById(rates.machines, job.printerId) || (rates.machines || [])[0];
     if (mach) N += H * mach.ph;
     if (rates.mods.design) N += pos(job.designH) * b.designH;
