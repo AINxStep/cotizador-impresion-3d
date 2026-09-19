@@ -95,17 +95,6 @@ test('el encabezado incluye el selector de tema (auto / claro / oscuro)', () => 
   assert.match(UI.header({ biz: cfg.biz }), /data-act="theme"/, 'también aparece en el enlace de clientes');
 });
 
-test('el encabezado incluye el selector de paleta (sólo fuera del enlace de clientes)', () => {
-  bindJob({});
-  const h = UI.header(null);
-  assert.match(h, /data-act="palette"/);
-  assert.match(h, /data-palette-val="bosque"/);
-  assert.match(h, /data-palette-val="mira"/);
-  assert.match(h, /data-palette-val="glanuv"/);
-  UI.bind({ cfg, job: jobBase(), mode: 'cliente', tab: 'cotizar', fromLink: true, imp: null, theme: 'auto', palette: '' });
-  assert.ok(!UI.header({ biz: cfg.biz }).includes('data-act="palette"'), 'el enlace de clientes no muestra el selector');
-});
-
 test('el archivo con varias placas pide indicar la relación con las piezas', () => {
   const res = { source: 'Bambu Studio', warnings: [], plates: [
     { index: 1, seconds: 3600, grams: 20, filaments: [] }, { index: 2, seconds: 3600, grams: 20, filaments: [] }] };

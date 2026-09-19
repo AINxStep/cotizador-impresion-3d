@@ -136,20 +136,6 @@
     }).join('') + '</div>';
   }
 
-  /* Paletas alternativas (experimental): puntos de color en la barra superior */
-  var PALETTES = [
-    ['', 'Espresso + ámbar', '#c9803a'],
-    ['bosque', 'Bosque + ocre', '#5a7d46'],
-    ['mira', 'Esmeralda + menta', '#4fc39f'],
-    ['glanuv', 'Navy + naranja + cielo', '#ff7a42']
-  ];
-  function paletteSeg() {
-    var cur = S.palette || '';
-    return '<div class="seg theme" role="group" aria-label="Paleta de color (experimental)">' + PALETTES.map(function (p) {
-      return '<button type="button" data-act="palette" data-palette-val="' + p[0] + '" aria-pressed="' + (cur === p[0]) + '" title="' + p[1] + '" aria-label="' + p[1] + '"><i class="dot" style="background:' + p[2] + '"></i></button>';
-    }).join('') + '</div>';
-  }
-
   function header(rates) {
     var biz = S.mode === 'cliente' ? rates.biz : S.cfg.biz;
     var title = S.fromLink && biz.name ? biz.name : 'Cotizador de impresión 3D';
@@ -159,7 +145,7 @@
       '<button type="button" data-act="mode" data-mode="taller" aria-pressed="' + (S.mode === 'taller') + '">Taller</button>' +
       '<button type="button" data-act="mode" data-mode="cliente" aria-pressed="' + (S.mode === 'cliente') + '">Cliente</button></div>';
     return '<header class="topbar"><div class="wrap"><div class="brand">' + LOGO +
-      '<div><strong>' + esc(title) + '</strong><span class="sub">' + esc(sub) + '</span></div></div>' + seg + themeSeg() + (S.fromLink ? '' : paletteSeg()) + '</div></header>';
+      '<div><strong>' + esc(title) + '</strong><span class="sub">' + esc(sub) + '</span></div></div>' + seg + themeSeg() + '</div></header>';
   }
 
   function tabs() {
