@@ -86,7 +86,10 @@
       hours: 2,
       minutes: 30,
       plates: 1,
-      ppp: 1,
+      rel: 'multi', // 'multi': varias piezas por placa · 'split': una pieza se reparte en varias placas
+      ppp: 1,       // piezas por placa (rel = 'multi')
+      ppl: 1,       // placas por pieza (rel = 'split'); admite decimales
+      by: 'piece',  // 'piece' | 'plate': unidad del precio unitario y del descuento por volumen
       designH: 0,
       postMin: 0,
       supplies: 0,

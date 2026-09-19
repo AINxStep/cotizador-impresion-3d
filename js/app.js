@@ -74,7 +74,8 @@
       S.cfg = Defaults.makeConfig(); // sin uso en este modo; evita nulos
       S.job = {
         name: '', client: '', printerId: linkRates.machines[0].id,
-        lines: [{ materialId: linkRates.mats[0].id, g: 0 }], hours: 0, minutes: 0, plates: 1, ppp: 1,
+        lines: [{ materialId: linkRates.mats[0].id, g: 0 }], hours: 0, minutes: 0, plates: 1,
+        rel: 'multi', ppp: 1, ppl: 1, by: 'piece',
         designH: 0, postMin: 0, supplies: 0, purgeG: 0, extraMin: 0, urgent: false, shipping: 0
       };
       return;
@@ -184,6 +185,8 @@
           var elec = p.powerW / 1000 * cfg.energy.pricePerKwh;
           el.textContent = 'Costo de máquina ≈ ' + UI.money(dep + p.maintPerH + elec, code) + ' por hora (depreciación ' + UI.money(dep, code) + ' + mantenimiento ' + UI.money(p.maintPerH, code) + ' + electricidad ' + UI.money(elec, code) + ').';
         }
+      } else if (kind === 'qty') {
+        el.textContent = UI.qtyLive(Calc.jobShape(null, S.job));
       } else if (kind === 'equiv') {
         var pr = cfg.pricing;
         if (pr.method === 'markup') {
@@ -258,7 +261,9 @@
   function handleFile(file) {
     if (!file) return;
     Importers.importFile(file).then(function (res) {
-      S.imp = { res: res, name: file.name, which: 'all', mapping: [] };
+      S.imp = { res: res, name: file.name, which: 'all', mapping: [], relSet: false, autoPpl: false };
+      // archivo nuevo = trabajo nuevo: la relación entre placas y piezas se vuelve a indicar
+      S.job.rel = 'multi'; S.job.ppp = 1; S.job.ppl = 1;
       applyImport();
       renderApp();
       persist();
@@ -285,6 +290,11 @@
     else v = t.value;
     UI.setPath(S, path, v);
     S.confirmReset = false;
+    if (path === 'job.rel' || path === 'job.ppl') {
+      if (S.imp) { S.imp.relSet = true; S.imp.autoPpl = false; }
+      // al elegir "una pieza en varias placas", lo más común es que todas las placas formen una pieza
+      if (path === 'job.rel' && v === 'split' && !(Number(S.job.ppl) > 1) && Number(S.job.plates) > 1) S.job.ppl = S.job.plates;
+    }
     if (t.hasAttribute('data-rerender') && e.type === 'change') { persist(); renderApp(); }
     else if (t.tagName === 'SELECT' && path.indexOf('cfg.') === 0 && /materials|printers/.test(path)) { refresh(); }
     else refresh();
@@ -304,6 +314,17 @@
         break;
       case 'tab':
         S.tab = el.getAttribute('data-tab'); S.confirmReset = false; renderApp(); window.scrollTo(0, 0);
+        break;
+      case 'rel-split': // las placas del archivo forman una sola pieza
+        S.job.rel = 'split'; S.job.ppl = Math.max(1, Number(S.job.plates) || 1);
+        if (S.imp) { S.imp.relSet = true; S.imp.autoPpl = true; }
+        renderApp(); persist(); break;
+      case 'rel-multi': // cada placa lleva sus propias piezas
+        S.job.rel = 'multi';
+        if (S.imp) { S.imp.relSet = true; S.imp.autoPpl = false; }
+        renderApp(); persist();
+        var pf = document.getElementById(UI.idFor('job.ppp'));
+        if (pf) { try { pf.focus(); pf.select(); } catch (err) { /* sin foco */ } }
         break;
       case 'add-line': {
         var cat = UI.catalog(activeRates());
@@ -352,7 +373,13 @@
     var t = e.target;
     var act = t.getAttribute && t.getAttribute('data-act');
     if (act === 'file') { handleFile(t.files && t.files[0]); t.value = ''; }
-    else if (act === 'imp-sel') { S.imp.which = t.value === 'all' ? 'all' : Number(t.value); applyImport(); renderApp(); persist(); }
+    else if (act === 'imp-sel') {
+      S.imp.which = t.value === 'all' ? 'all' : Number(t.value);
+      applyImport();
+      // si las placas se habían declarado como una sola pieza, sigue la cantidad de placas elegida
+      if (S.imp.autoPpl && S.job.rel === 'split') S.job.ppl = Math.max(1, Number(S.job.plates) || 1);
+      renderApp(); persist();
+    }
     else if (act === 'import-cfg') {
       var f = t.files && t.files[0]; t.value = '';
       if (!f) return;

@@ -52,6 +52,24 @@
     return h + ' h' + (m ? ' ' + m + ' min' : '');
   }
 
+  // Piezas y placas: textos comunes a la pantalla, la cotización copiada y la hoja imprimible
+  function plural(n, one, many) { return Math.abs(n - 1) < 1e-9 ? one : many; }
+  function unitWord(q) { return q.byPlate ? 'placa' : 'pieza'; }
+  function differ(q) { return Math.abs(q.pieces - q.plates) > 1e-9; }
+  /** "12 piezas en 3 placas" */
+  function qtyText(q) {
+    return fmtN(q.pieces) + ' ' + plural(q.pieces, 'pieza', 'piezas') + ' en ' + fmtN(q.plates) + ' ' + plural(q.plates, 'placa', 'placas');
+  }
+  /** Explicación en vivo de la relación elegida y de la unidad de cotización. */
+  function qtyLive(s) {
+    var eq = s.split
+      ? fmtN(s.plates) + ' ' + plural(s.plates, 'placa', 'placas') + ' ÷ ' + fmtN(s.ppl) + ' ' + plural(s.ppl, 'placa', 'placas') + ' por pieza'
+      : fmtN(s.plates) + ' ' + plural(s.plates, 'placa', 'placas') + ' × ' + fmtN(s.ppp) + ' ' + plural(s.ppp, 'pieza', 'piezas') + ' por placa';
+    var word = s.byPlate ? 'placa' : 'pieza';
+    return eq + ' = ' + fmtN(s.pieces) + ' ' + plural(s.pieces, 'pieza', 'piezas') + ' en total. Se cotiza por ' + word +
+      ': el descuento por volumen cuenta ' + fmtN(s.units) + ' ' + plural(s.units, s.byPlate ? 'placa' : 'pieza', s.byPlate ? 'placas' : 'piezas') + '.';
+  }
+
   // ------------------------------------------------------------------
   // Campos de formulario (se enlazan por data-path con el estado)
   // ------------------------------------------------------------------
@@ -145,8 +163,15 @@
     }
     var warn = (res.warnings || []).map(function (w) { return '<div class="err">' + esc(w) + '</div>'; }).join('');
     var map = (imp.mapping || []).length ? '<div style="color:var(--muted)">Material asignado: ' + imp.mapping.map(esc).join(' · ') + '. Cámbialo abajo si no coincide.</div>' : '';
+    // El archivo trae las placas, pero no dice si forman una sola pieza o varias: lo indica el usuario.
+    var n = Number(S.job.plates) || 0;
+    var ask = (n > 1 && !imp.relSet)
+      ? '<div class="note info" style="margin:12px 0 0"><b>El archivo trae ' + fmtN(n) + ' placas, pero no dice a qué piezas corresponden.</b> Indícalo para cotizar bien:' +
+        '<div class="btn-row"><button type="button" class="btn small" data-act="rel-split">Las ' + fmtN(n) + ' placas forman una sola pieza</button>' +
+        '<button type="button" class="btn small" data-act="rel-multi">Cada placa lleva sus propias piezas</button></div></div>'
+      : '';
     return head + '<div class="import-box"><strong>' + esc(imp.name) + '</strong> <span style="color:var(--muted)">· ' + esc(res.source) + '</span>' +
-      '<table><thead><tr><th>Placa</th><th>Tiempo</th><th>Peso</th></tr></thead><tbody>' + rows + '</tbody></table>' + sel + map + warn + '</div>';
+      '<table><thead><tr><th>Placa</th><th>Tiempo</th><th>Peso</th></tr></thead><tbody>' + rows + '</tbody></table>' + sel + map + warn + ask + '</div>';
   }
 
   function jobForm(rates) {
@@ -176,9 +201,21 @@
       '<div class="grid" style="margin-top:16px">' +
       field({ path: 'job.hours', label: 'Tiempo · horas', suffix: 'h' }) +
       field({ path: 'job.minutes', label: 'Tiempo · minutos', suffix: 'min' }) +
-      field({ path: 'job.ppp', label: 'Piezas por placa', step: '1', min: 1 }) +
-      field({ path: 'job.plates', label: 'Número de placas', step: '1', min: 1, hint: 'Cuántas veces se repite esa impresión.' }) +
+      field({ path: 'job.plates', label: 'Número de placas', step: '1', min: 1, hint: 'Cuántas placas se imprimen. Si cargas un archivo con varias, se llena solo.' }) +
       '</div></section>';
+
+    // La relación entre placas y piezas la indica el usuario: el archivo del laminador sólo trae las placas.
+    var relBlock = '<section class="card"><h2>Piezas y placas</h2>' +
+      '<p class="lead">Una pieza puede repartirse en varias placas, y una placa puede llevar varias piezas (por ejemplo, llaveros). Indica cuál es tu caso y por cuál unidad quieres cotizar.</p>' +
+      '<div class="grid two">' +
+      field({ path: 'job.rel', type: 'select', label: 'Relación entre placas y piezas', rerender: true, wide: true,
+        options: [['multi', 'Cada placa lleva una o varias piezas'], ['split', 'Una pieza se reparte en varias placas']] }) +
+      (job.rel === 'split'
+        ? field({ path: 'job.ppl', label: 'Placas por pieza', step: 'any', min: 1, hint: 'Cuántas placas necesita una pieza. Ej. 3 si cada pieza ocupa 3 placas.' })
+        : field({ path: 'job.ppp', label: 'Piezas por placa', step: '1', min: 1, hint: 'Ej. 12 si caben 12 llaveros en cada placa.' })) +
+      field({ path: 'job.by', type: 'select', label: 'Cotizar por', options: [['piece', 'Pieza'], ['plate', 'Placa']],
+        hint: 'Define el precio unitario y la cantidad con la que se aplica el descuento por volumen.' }) +
+      '</div><div class="note info" data-live="qty" style="margin:14px 0 0"></div></section>';
 
     var extras = [];
     if (mods.design) extras.push(field({ path: 'job.designH', label: 'Diseño / modelado', suffix: 'h', hint: 'Horas de trabajo de diseño para este pedido.' }));
@@ -200,7 +237,7 @@
       field({ path: 'job.client', type: 'text', label: 'Cliente', placeholder: 'Opcional' }) + '</div></section>';
 
     return project + '<section class="card"><h2>Archivo del laminador <span class="tag">opcional</span></h2>' +
-      '<p class="lead">Carga el archivo y se llenan peso, tiempo y placas automáticamente.</p>' + importBox() + '</section>' + print + more;
+      '<p class="lead">Carga el archivo y se llenan peso, tiempo y placas automáticamente.</p>' + importBox() + '</section>' + print + relBlock + more;
   }
 
   // ------------------------------------------------------------------
@@ -269,7 +306,7 @@
       '<tr class="sec"><td colspan="3">Del costo al precio</td></tr>' +
       row(cfg.pricing.method === 'markup' ? 'Utilidad (multiplicador ×' + fmtN(cfg.pricing.markup, 2) + ')' : 'Utilidad (margen ' + fmtN(cfg.pricing.marginPct, 1) + ' %)', q.marginAmount) +
       (q.rush > 0.004 ? row('Recargo por urgencia', q.rush) : '') +
-      (q.discount > 0.004 ? row('Descuento por volumen (' + fmtN(q.discountPct, 1) + ' %)', -q.discount) : '') +
+      (q.discount > 0.004 ? row('Descuento por volumen (' + fmtN(q.discountPct, 1) + ' %)', -q.discount, { hint: 'Por ' + fmtN(q.units) + ' ' + plural(q.units, unitWord(q), unitWord(q) + 's') }) : '') +
       (q.fees > 0.004 ? row('Comisiones y cargos de cobro', q.fees, { hint: 'Ya incluidas en el precio para que tu utilidad no baje' }) : '') +
       (Math.abs(minRow) > 0.004 && q.minApplied ? row('Ajuste a pedido mínimo', minRow) : '') +
       (q.ship > 0.004 ? row('Envío', q.ship, { hint: 'Sin margen' }) : '') +
@@ -281,7 +318,8 @@
 
     return '<section class="card result">' +
       '<div class="price-head"><div class="label">' + headLabel + '</div><div class="price">' + m(q.total) + '</div>' +
-      '<div class="sub">' + (taxOn ? 'Antes de IVA ' + m(q.subtotal) + ' · ' : '') + fmtN(q.pieces) + ' pieza' + (q.pieces === 1 ? '' : 's') + ' · ' + m(q.unit) + ' por pieza (sin IVA)</div></div>' +
+      '<div class="sub">' + (taxOn ? 'Antes de IVA ' + m(q.subtotal) + ' · ' : '') + qtyText(q) + ' · ' + m(q.unit) + ' por ' + unitWord(q) + ' (sin IVA)' +
+      (differ(q) ? ' · equivale a ' + m(q.byPlate ? q.unitPiece : q.unitPlate) + ' por ' + (q.byPlate ? 'pieza' : 'placa') : '') + '</div></div>' +
       notesHtml(q.notes) +
       '<div class="kpis">' +
       '<div class="kpi"><div class="k">Costo total</div><div class="v">' + m(q.cost) + '</div></div>' +
@@ -305,7 +343,8 @@
     var taxOn = rates.money.taxOn;
     var lines = [];
     lines.push(['Piezas', fmtN(q.pieces)]);
-    lines.push(['Precio por pieza' + (taxOn ? ' (sin IVA)' : ''), m(q.unit)]);
+    if (differ(q)) lines.push(['Placas de impresión', fmtN(q.plates)]);
+    lines.push(['Precio por ' + unitWord(q) + (taxOn ? ' (sin IVA)' : ''), m(q.unit)]);
     if (q.discountPct > 0) lines.push(['Descuento por volumen incluido', fmtN(q.discountPct, 1) + ' %']);
     if (S.job.urgent && rates.mods.rush) lines.push(['Incluye recargo por entrega urgente', '+' + fmtN(rates.tail.rushPct, 1) + ' %']);
     if (q.ship > 0) lines.push(['Envío', m(q.ship)]);
@@ -319,7 +358,8 @@
     if (rates.biz.notes) foot.push(esc(rates.biz.notes));
     if (rates.biz.contact) foot.push('Contacto: ' + esc(rates.biz.contact));
     return '<section class="card result"><div class="price-head"><div class="label">Precio estimado' + (taxOn ? ' con IVA' : '') + '</div><div class="price">' + m(q.total) + '</div>' +
-      '<div class="sub">' + fmtN(q.pieces) + ' pieza' + (q.pieces === 1 ? '' : 's') + '</div></div>' +
+      '<div class="sub">' + qtyText(q) + '</div></div>' +
+      notesHtml(q.notes) +
       (q.minApplied ? '<div class="note info">Se aplica el pedido mínimo del taller.</div>' : '') +
       '<div class="client-lines">' + lines.map(function (l) { return '<div><span>' + l[0] + '</span><span>' + l[1] + '</span></div>'; }).join('') + '</div>' +
       '<p class="sub" style="margin-top:12px">' + foot.join('<br>') + '</p>' +
@@ -347,8 +387,8 @@
     out.push('Fecha: ' + d.date);
     if (j.name) out.push('Proyecto: ' + j.name);
     if (j.client) out.push('Cliente: ' + j.client);
-    out.push('Piezas: ' + fmtN(q.pieces) + (d.materials ? ' · Material: ' + d.materials : ''));
-    out.push('Precio por pieza: ' + m(q.unit) + (d.money.taxOn ? ' (sin IVA)' : ''));
+    out.push('Piezas: ' + fmtN(q.pieces) + (differ(q) ? ' (en ' + fmtN(q.plates) + ' ' + plural(q.plates, 'placa', 'placas') + ')' : '') + (d.materials ? ' · Material: ' + d.materials : ''));
+    out.push('Precio por ' + unitWord(q) + ': ' + m(q.unit) + (d.money.taxOn ? ' (sin IVA)' : ''));
     if (q.ship > 0) out.push('Envío: ' + m(q.ship));
     if (d.money.taxOn) { out.push('Subtotal: ' + m(q.subtotal)); out.push('IVA (' + fmtN(d.money.taxRate, 1) + ' %): ' + m(q.tax)); }
     out.push('TOTAL: ' + m(q.total));
@@ -369,7 +409,8 @@
       '<div class="meta"><div><b>Proyecto:</b> ' + esc(j.name || '—') + '<br><b>Cliente:</b> ' + esc(j.client || '—') + '</div>' +
       '<div style="text-align:right"><b>Fecha:</b> ' + esc(d.date) + '<br>' + esc(d.biz.contact || '') + '</div></div>' +
       '<table><thead><tr><th>Concepto</th><th>Cant.</th><th>P. unitario</th><th>Importe</th></tr></thead><tbody>' +
-      '<tr><td>Impresión 3D' + (d.materials ? ' · ' + esc(d.materials) : '') + '</td><td>' + fmtN(q.pieces) + '</td><td>' + m(q.unit) + '</td><td>' + m(importe) + '</td></tr>' +
+      '<tr><td>Impresión 3D' + (d.materials ? ' · ' + esc(d.materials) : '') +
+      '<span style="display:block;color:#555;font-size:12px">' + esc(qtyText(q)) + ' · precio por ' + unitWord(q) + '</span></td><td>' + fmtN(q.units) + '</td><td>' + m(q.unit) + '</td><td>' + m(importe) + '</td></tr>' +
       (q.ship > 0 ? '<tr><td>Envío</td><td>1</td><td>' + m(q.ship) + '</td><td>' + m(q.ship) + '</td></tr>' : '') +
       '</tbody><tfoot>' +
       (d.money.taxOn ? '<tr><td colspan="3" style="text-align:right">Subtotal</td><td>' + m(q.subtotal) + '</td></tr><tr><td colspan="3" style="text-align:right">IVA (' + fmtN(d.money.taxRate, 1) + ' %)</td><td>' + m(q.tax) + '</td></tr>' : '') +
@@ -448,10 +489,11 @@
     };
     var tiers = '';
     if (M.discounts.on) {
-      tiers = '<div class="field wide"><div class="label">Descuentos por cantidad de piezas</div>' +
+      tiers = '<div class="field wide"><div class="label">Descuentos por cantidad</div>' +
+        '<small style="color:var(--muted)">La cantidad cuenta piezas o placas, según lo que se elija en «Cotizar por» al hacer la cotización.</small>' +
         M.discounts.tiers.map(function (t, i) {
           var b = 'cfg.modules.discounts.tiers.' + i;
-          return '<div class="tier">' + field({ path: b + '.min', label: 'Desde (piezas)', step: '1', min: 1 }) + field({ path: b + '.pct', label: 'Descuento', suffix: '%' }) +
+          return '<div class="tier">' + field({ path: b + '.min', label: 'Desde (cantidad)', step: '1', min: 1 }) + field({ path: b + '.pct', label: 'Descuento', suffix: '%' }) +
             '<button type="button" class="icon-btn" data-act="rm-tier" data-i="' + i + '" aria-label="Quitar nivel" style="margin-top:20px">×</button></div>';
         }).join('') + '<div class="btn-row"><button type="button" class="btn small ghost" data-act="add-tier">+ Agregar nivel</button></div></div>';
     }
@@ -464,7 +506,7 @@
         field({ path: 'cfg.modules.fees.pct', label: 'Comisión', suffix: '%' }) + field({ path: 'cfg.modules.fees.fixed', label: 'Cargo fijo por venta', prefix: cur })) +
       modCard('minimum', 'Pedido mínimo', 'Cubre el trabajo fijo de laminar, preparar y empacar piezas pequeñas.', field({ path: 'cfg.modules.minimum.amount', label: 'Monto mínimo (antes de IVA)', prefix: cur })) +
       modCard('rush', 'Recargo por urgencia', 'Casilla “entrega urgente” en la cotización.', field({ path: 'cfg.modules.rush.pct', label: 'Recargo', suffix: '%' })) +
-      modCard('discounts', 'Descuento por volumen', 'Reduce el precio según el total de piezas del pedido.', tiers) + '</section>';
+      modCard('discounts', 'Descuento por volumen', 'Reduce el precio según la cantidad del pedido, en piezas o en placas (según por cuál unidad cotices).', tiers) + '</section>';
 
     var link = extra.link
       ? '<div class="linkbox"><input readonly id="link-out" value="' + esc(extra.link) + '" aria-label="Enlace para clientes"><button type="button" class="btn primary" data-act="copy-link">Copiar</button></div>' +
@@ -506,7 +548,7 @@
       '<pre>Precio base N = Costo / (1 − margen)          (método “margen”)\n' +
       'Precio base N = Costo × multiplicador          (método “multiplicador”)\n' +
       'Urgencia      → N × (1 + recargo)\n' +
-      'Descuento     → según piezas totales del pedido\n' +
+      'Descuento     → según la cantidad del pedido (piezas o placas)\n' +
       'Comisión      → Precio = (N + cargo_fijo) / (1 − comisión%)\n' +
       'Mínimo        → si Precio &lt; mínimo, se cobra el mínimo\n' +
       'Envío         → se suma sin margen\n' +
@@ -516,6 +558,11 @@
       '<p>La comisión se calcula “hacia atrás” (gross-up) para que, después de pagarla, te quede el precio base: así una comisión no se come tu utilidad.</p>' +
       '<h3>Modo Taller y modo Cliente</h3>' +
       '<p>El precio del modo Cliente sale de <b>tarifas de venta</b> derivadas de tu configuración (precio por gramo de cada material, por hora de cada impresora, por placa y por pedido). Como el modelo es lineal, esas tarifas reproducen exactamente el mismo precio que el modo Taller, sin revelar costos, márgenes ni utilidad.</p>' +
+      '<h3>Piezas y placas</h3>' +
+      '<p>Una pieza puede repartirse en varias placas y una placa puede llevar varias piezas. El costo físico (material, tiempo de máquina, electricidad, fallas y manejo por placa) depende de las <b>placas</b>; el postprocesado y sus insumos dependen de las <b>piezas</b>. El archivo del laminador sólo trae las placas, así que tú indicas la relación:</p>' +
+      '<pre>Varias piezas por placa      →  piezas = placas × piezas_por_placa\n' +
+      'Una pieza en varias placas   →  piezas = placas ÷ placas_por_pieza</pre>' +
+      '<p><b>Cotizar por</b> pieza o por placa define el precio unitario que se muestra y la cantidad con la que se cuenta el descuento por volumen. El costo del trabajo es el mismo; el total sólo cambia si esa cantidad hace que el descuento cambie de nivel.</p>' +
       '<h3>Datos de tu archivo</h3>' +
       '<p>Al cargar un <code>.gcode.3mf</code> se lee el archivo <code>Metadata/slice_info.config</code> (tiempo estimado y gramos por filamento de cada placa). Con varias placas puedes usar una sola o el conjunto. El peso del laminador ya incluye torre de purga y flush, por eso la merma por defecto es baja.</p>' +
       '<h3>Fuentes consultadas</h3>' +
@@ -532,6 +579,7 @@
 
   root.UI = {
     bind: bind, esc: esc, getPath: getPath, setPath: setPath, money: money, fmtN: fmtN, pct: pct, duration: duration,
+    plural: plural, qtyText: qtyText, qtyLive: qtyLive,
     catalog: catalog, curCode: curCode, header: header, tabs: tabs, jobForm: jobForm, hasData: hasData,
     resultTaller: resultTaller, resultClient: resultClient, customerData: customerData, quoteText: quoteText,
     sheetHtml: sheetHtml, configView: configView, methodView: methodView, idFor: idFor

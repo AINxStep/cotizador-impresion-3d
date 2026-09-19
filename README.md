@@ -11,6 +11,7 @@ Es una página estática (HTML + CSS + JavaScript, sin servidor ni dependencias)
 
 - Desglose por concepto y gráfica de "¿a dónde se va el precio?", con utilidad, margen real y utilidad por hora de máquina.
 - **Lee el archivo del laminador:** arrastra un `.gcode.3mf` (Bambu Studio, OrcaSlicer) o un `.gcode` (Bambu, Orca, PrusaSlicer) y se llenan peso por filamento, tiempo y número de placas. El archivo se procesa en el navegador; no se sube a ningún servidor. [Paso a paso para generarlo](#cómo-generar-el-archivo-para-subirlo-a-la-página).
+- **Piezas y placas:** una pieza puede repartirse en varias placas y una placa puede llevar varias piezas (llaveros, por ejemplo). Indicas cómo se relacionan y eliges si cotizas **por pieza o por placa**. [Cómo funciona](#piezas-y-placas).
 - Varias impresoras (depreciación, mantenimiento y consumo eléctrico por hora) y varios materiales (costo por gramo).
 - Módulos opcionales que se activan o desactivan: diseño y modelado, postprocesado e insumos, multicolor y purga, empaque, comisiones de plataforma o cobro, pedido mínimo, recargo por urgencia y descuento por volumen.
 - Margen sobre el precio **o** multiplicador sobre el costo, con la equivalencia entre ambos.
@@ -65,7 +66,8 @@ La página no lee el modelo 3D (STL, OBJ ni un 3MF de proyecto). Lee el **archiv
 2. En la tarjeta **Archivo del laminador**, arrastra el archivo o haz clic para elegirlo. Se lee en tu navegador; no se sube a ningún servidor.
 3. Se llenan solos el peso por filamento, el tiempo y el número de placas (y el nombre del proyecto, si estaba vacío). Con varias placas puedes usar todas o sólo una en el desplegable *Usar en la cotización*.
 4. Revisa el **material asignado**: si el tipo de filamento del archivo (PLA, PETG…) coincide con el nombre de un material de tu configuración, se elige solo; si no, se usa el primero y se indica "sin coincidencia". Cámbialo en el desplegable si hace falta.
-5. Captura lo que el archivo no trae: **piezas por placa**, diseño, postprocesado, envío y urgencia.
+5. **Indica cómo se relacionan las placas con las piezas.** El archivo sólo trae las placas; no puede saber si forman una sola pieza o varias. Si trae más de una, la página te pregunta con dos botones (*Las N placas forman una sola pieza* / *Cada placa lleva sus propias piezas*); también puedes cambiarlo en la tarjeta *Piezas y placas*. Ver [Piezas y placas](#piezas-y-placas).
+6. Captura lo que el archivo no trae: diseño, postprocesado, envío y urgencia.
 
 El peso que reporta el laminador ya incluye la torre de purga y el material que se desecha al cambiar de color, por eso la merma por defecto es baja (5 %).
 
@@ -80,6 +82,26 @@ El peso que reporta el laminador ya incluye la torre de purga y el material que 
 | El tiempo o el peso no coinciden con el laminador | Se cambió el perfil o las piezas después de exportar | Vuelve a laminar y a exportar |
 | "Tu navegador no soporta DecompressionStream" | Navegador antiguo | Actualiza el navegador o captura los datos a mano |
 
+## Piezas y placas
+
+Un mismo trabajo puede verse de dos maneras: por **placas** (cada corrida de impresión) o por **piezas** (lo que recibe el cliente). El archivo del laminador sólo dice cuántas placas hay, así que la relación entre ambas la indicas tú en la tarjeta *Piezas y placas*:
+
+| Caso | Ejemplo | Cómo se indica | Piezas |
+|---|---|---|---|
+| Cada placa lleva una o varias piezas | 3 placas con 12 llaveros cada una | *Cada placa lleva una o varias piezas* + **piezas por placa** = 12 | placas × piezas por placa = 36 |
+| Una pieza se reparte en varias placas | Una figura grande que ocupa 3 placas | *Una pieza se reparte en varias placas* + **placas por pieza** = 3 | placas ÷ placas por pieza = 1 |
+
+*Placas por pieza* admite decimales. Si las placas no son múltiplo exacto (5 placas con 3 placas por pieza), se cotizan 1.67 piezas y la página lo avisa.
+
+**Cotizar por** (pieza o placa) decide dos cosas:
+
+- **El precio unitario** que se muestra en el resultado, en el texto copiado y en la hoja para imprimir: *precio por pieza* o *precio por placa* (el otro se muestra como equivalencia en el modo Taller).
+- **La cantidad con la que se aplica el descuento por volumen.** Los niveles de la configuración (por ejemplo, desde 5 y desde 10) cuentan piezas o placas según lo elegido.
+
+Qué depende de qué: el **material, el tiempo de máquina, la electricidad, las fallas y el manejo por placa** dependen de las **placas**; el **postprocesado y sus insumos** dependen de las **piezas**. Cambiar la relación o la unidad de cotización no cambia el costo del trabajo; el total sólo se mueve si el descuento por volumen cambia de nivel o si hay postprocesado (que se cobra por pieza).
+
+Cuando cargas un archivo, la página reinicia la relación (varias piezas por placa, 1 pieza por placa) y, si el archivo trae más de una placa, te pide indicarla. Los enlaces para clientes y las sesiones guardadas antes de esta función siguen funcionando: se interpretan como *varias piezas por placa* y *cotizar por pieza*, igual que antes.
+
 ## Cómo se calcula
 
 ```
@@ -92,7 +114,7 @@ Costo        = Con fallas + mano de obra + diseño + postprocesado + insumos + e
                + indirectos% × (todo lo anterior)
 
 Precio base  = Costo / (1 − margen)          ó          Costo × multiplicador
-             → urgencia → descuento por volumen → comisión → mínimo → envío → redondeo → IVA
+             → urgencia → descuento por volumen (por piezas o placas) → comisión → mínimo → envío → redondeo → IVA
 ```
 
 Puntos importantes:
@@ -134,7 +156,7 @@ Para compartir enlaces con clientes usa la versión publicada, porque un enlace 
 npm test
 ```
 
-Usa el ejecutor de pruebas integrado de Node (18 o superior; no hay dependencias que instalar). Cubren el motor de cálculo (casos verificados a mano, fallas, comisiones, mínimo, descuentos, redondeo, IVA), la equivalencia entre modo Taller y modo Cliente con 300 trabajos aleatorios, la ausencia de datos de costo en las tarifas públicas y la lectura de archivos `.3mf` y `.gcode` (los archivos de ejemplo se generan al vuelo; no hay binarios en el repositorio).
+Usa el ejecutor de pruebas integrado de Node (18 o superior; no hay dependencias que instalar). Cubren el motor de cálculo (casos verificados a mano, fallas, comisiones, mínimo, descuentos, redondeo, IVA), la relación entre piezas y placas (ambos casos, piezas fraccionarias y descuento por pieza o por placa), la equivalencia entre modo Taller y modo Cliente con cientos de trabajos aleatorios, la ausencia de datos de costo en las tarifas públicas y la lectura de archivos `.3mf` y `.gcode` (los archivos de ejemplo se generan al vuelo; no hay binarios en el repositorio).
 
 ## Estructura
 

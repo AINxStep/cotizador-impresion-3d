@@ -280,3 +280,158 @@ test('las tarifas públicas se derivan sólo de módulos activos', () => {
   assert.equal(rates.base.designH, 0);
   assert.equal(rates.base.postMin, 0);
 });
+
+// ------------------------------------------------------------------
+// Piezas y placas: el archivo trae las placas; la relación con las piezas la indica el usuario
+// ------------------------------------------------------------------
+test('varias piezas por placa: piezas = placas × piezas por placa', () => {
+  // 3 placas de 5 h → costo 300, precio base 500 (ver caso base)
+  const job = simpleJob({ plates: 3, rel: 'multi', ppp: 12 });
+  const q = Calc.computeQuote(simpleCfg(), job);
+  close(q.cost, 300);
+  close(q.service, 500);
+  assert.equal(q.plates, 3);
+  assert.equal(q.pieces, 36);
+  close(q.unitPiece, 500 / 36);
+  close(q.unitPlate, 500 / 3);
+  close(q.unit, 500 / 36, 1e-9, 'por defecto se cotiza por pieza');
+  assert.equal(q.byPlate, false);
+  close(Calc.computeQuote(simpleCfg(), Object.assign({}, job, { by: 'plate' })).unit, 500 / 3);
+});
+
+test('una pieza repartida en varias placas: piezas = placas ÷ placas por pieza', () => {
+  const q = Calc.computeQuote(simpleCfg(), simpleJob({ plates: 3, rel: 'split', ppl: 3 }));
+  assert.equal(q.pieces, 1);
+  close(q.unitPiece, 500);
+  close(q.unitPlate, 500 / 3);
+  const q2 = Calc.computeQuote(simpleCfg(), simpleJob({ plates: 6, rel: 'split', ppl: 3 }));
+  assert.equal(q2.pieces, 2);
+  close(q2.unitPiece, q2.service / 2);
+});
+
+test('el postprocesado se cobra por pieza y el manejo por placa', () => {
+  const cfg = simpleCfg();
+  cfg.modules.post = { on: true, rate: 120 };
+  cfg.labor.plateMin = 6; // 0.1 h × 120 = 12 por placa
+  const job = { postMin: 30, supplies: 4 };
+  const una = Calc.computeQuote(cfg, simpleJob(Object.assign({ plates: 3, rel: 'split', ppl: 3 }, job))); // 1 pieza
+  close(una.costs.postLabor, 30 / 60 * 120);
+  close(una.costs.postSupplies, 4);
+  const varias = Calc.computeQuote(cfg, simpleJob(Object.assign({ plates: 3, rel: 'multi', ppp: 12 }, job))); // 36 piezas
+  close(varias.costs.postLabor, 36 * 30 / 60 * 120);
+  close(varias.costs.postSupplies, 36 * 4);
+  close(una.costs.labor, (30 + 6 * 3) / 60 * 120, 1e-9, 'el manejo depende de las placas');
+  close(varias.costs.labor, una.costs.labor, 1e-9);
+});
+
+test('placas que no son múltiplo de las placas por pieza dan piezas fraccionarias con aviso', () => {
+  const q = Calc.computeQuote(simpleCfg(), simpleJob({ plates: 5, rel: 'split', ppl: 3 }));
+  close(q.pieces, 5 / 3);
+  assert.ok(q.notes.some((n) => /no es múltiplo/.test(n.text) && /1\.67/.test(n.text)), JSON.stringify(q.notes));
+  const exacto = Calc.computeQuote(simpleCfg(), simpleJob({ plates: 6, rel: 'split', ppl: 3 }));
+  assert.ok(!exacto.notes.some((n) => /múltiplo/.test(n.text)));
+  const admiteDecimales = Calc.computeQuote(simpleCfg(), simpleJob({ plates: 3, rel: 'split', ppl: 1.5 }));
+  assert.equal(admiteDecimales.pieces, 2);
+});
+
+test('el costo físico y el precio no cambian con la relación ni con "cotizar por" (sin descuentos ni postprocesado)', () => {
+  const cfg = simpleCfg();
+  const base = Calc.computeQuote(cfg, simpleJob({ plates: 4 }));
+  const variantes = [
+    { rel: 'multi', ppp: 9, by: 'piece' }, { rel: 'multi', ppp: 9, by: 'plate' },
+    { rel: 'split', ppl: 4, by: 'piece' }, { rel: 'split', ppl: 2.5, by: 'plate' }
+  ];
+  for (const v of variantes) {
+    const q = Calc.computeQuote(cfg, simpleJob(Object.assign({ plates: 4 }, v)));
+    close(q.cost, base.cost, 1e-9, JSON.stringify(v));
+    close(q.total, base.total, 1e-9, JSON.stringify(v));
+  }
+});
+
+test('cotizar por pieza o por placa define con qué cantidad se cuenta el descuento por volumen', () => {
+  const cfg = simpleCfg();
+  cfg.modules.discounts = { on: true, tiers: [{ min: 5, pct: 5 }, { min: 10, pct: 10 }] };
+  // 5 placas × 2 piezas = 10 piezas
+  const porPieza = Calc.computeQuote(cfg, simpleJob({ plates: 5, rel: 'multi', ppp: 2, by: 'piece' }));
+  const porPlaca = Calc.computeQuote(cfg, simpleJob({ plates: 5, rel: 'multi', ppp: 2, by: 'plate' }));
+  assert.equal(porPieza.units, 10);
+  assert.equal(porPieza.discountPct, 10);
+  assert.equal(porPlaca.units, 5);
+  assert.equal(porPlaca.discountPct, 5);
+  // una pieza en 6 placas: por pieza no hay descuento; por placa cuentan 6
+  const unaPieza = Calc.computeQuote(cfg, simpleJob({ plates: 6, rel: 'split', ppl: 6, by: 'piece' }));
+  const seisPlacas = Calc.computeQuote(cfg, simpleJob({ plates: 6, rel: 'split', ppl: 6, by: 'plate' }));
+  assert.equal(unaPieza.discountPct, 0);
+  assert.equal(seisPlacas.discountPct, 5);
+  // el descuento se aplica al precio base
+  close(porPlaca.service, porPlaca.N * 0.95, 1e-9);
+});
+
+test('precio unitario × cantidad = ingreso por el servicio', () => {
+  const cfg = simpleCfg();
+  cfg.money.rounding = 5;
+  cfg.modules.fees = { on: true, pct: 3.5, fixed: 4 };
+  for (const by of ['piece', 'plate']) {
+    const q = Calc.computeQuote(cfg, simpleJob({ plates: 3, rel: 'multi', ppp: 7, by }));
+    close(q.unit * q.units, q.service + q.roundAdj, 1e-9, by);
+  }
+});
+
+test('valores desconocidos de relación o de "cotizar por" usan los valores por defecto', () => {
+  const s = Calc.jobShape(null, { plates: 4, rel: 'x', ppp: 3, by: 'y' });
+  assert.equal(s.split, false);
+  assert.equal(s.pieces, 12);
+  assert.equal(s.byPlate, false);
+  assert.equal(s.units, 12);
+  const raro = Calc.jobShape(null, { plates: 4, rel: 'split', ppl: 0, ppp: 0, by: 'plate' });
+  assert.equal(raro.pieces, 4, 'placas por pieza menor a 1 se toma como 1');
+  assert.equal(raro.units, 4);
+  const sinDatos = Calc.jobShape(null, {});
+  assert.equal(sinDatos.pieces, 0);
+});
+
+test('modo Cliente = modo Taller con cualquier relación, "cotizar por" y descuentos', () => {
+  const cfg = Defaults.makeConfig();
+  cfg.modules.fees.on = true;
+  const rates = Calc.deriveRates(cfg);
+  const rand = rng(7);
+  for (let i = 0; i < 300; i++) {
+    const split = rand() < 0.5;
+    const job = {
+      printerId: cfg.printers[Math.floor(rand() * cfg.printers.length)].id,
+      lines: [{ materialId: cfg.materials[Math.floor(rand() * cfg.materials.length)].id, g: Math.round(rand() * 300) }],
+      hours: Math.floor(rand() * 12), minutes: Math.floor(rand() * 60),
+      plates: 1 + Math.floor(rand() * 30),
+      rel: split ? 'split' : 'multi',
+      ppp: 1 + Math.floor(rand() * 12),
+      ppl: 1 + Math.round(rand() * 60) / 10,
+      by: rand() < 0.5 ? 'plate' : 'piece',
+      designH: rand() < 0.3 ? rand() * 3 : 0, postMin: rand() < 0.5 ? Math.round(rand() * 45) : 0,
+      supplies: rand() < 0.5 ? Math.round(rand() * 20) : 0,
+      purgeG: 0, extraMin: 0, urgent: rand() < 0.3, shipping: rand() < 0.3 ? 90 : 0
+    };
+    const a = Calc.computeQuote(cfg, job);
+    const b = Calc.quoteFromRates(rates, job);
+    const tag = `caso ${i} ${JSON.stringify({ p: job.plates, r: job.rel, ppp: job.ppp, ppl: job.ppl, by: job.by })}`;
+    close(a.total, b.total, 0.01, `total (${tag})`);
+    close(a.unit, b.unit, 0.01, `unitario (${tag})`);
+    close(a.unitPiece, b.unitPiece, 0.01, `por pieza (${tag})`);
+    close(a.unitPlate, b.unitPlate, 0.01, `por placa (${tag})`);
+    assert.equal(a.discountPct, b.discountPct, `descuento (${tag})`);
+    close(a.pieces, b.pieces, 1e-9, `piezas (${tag})`);
+    assert.equal(a.notes.some((n) => /múltiplo/.test(n.text)), b.notes.some((n) => /múltiplo/.test(n.text)));
+  }
+});
+
+test('las tarifas públicas y los enlaces anteriores no dependen de la relación piezas/placas', () => {
+  const cfg = Defaults.makeConfig();
+  const json = JSON.stringify(Calc.deriveRates(cfg));
+  for (const k of ['"rel"', '"ppl"', '"ppp"', '"by"']) assert.ok(!json.includes(k), `no debe incluir ${k}`);
+  // un trabajo sin los campos nuevos (enlace o sesión guardada antes del cambio) sigue cotizando como antes
+  const rates = Calc.deriveRates(cfg);
+  const viejo = { printerId: cfg.printers[0].id, lines: [{ materialId: cfg.materials[0].id, g: 40 }], hours: 2, minutes: 0, plates: 3, ppp: 4 };
+  const q = Calc.quoteFromRates(rates, viejo);
+  assert.equal(q.pieces, 12);
+  assert.equal(q.byPlate, false);
+  close(q.total, Calc.computeQuote(cfg, viejo).total, 0.01);
+});

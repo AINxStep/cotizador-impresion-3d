@@ -36,12 +36,12 @@
     return null;
   }
 
-  /** Porcentaje de descuento que corresponde a `pieces` piezas. */
-  function discountPct(tiers, pieces) {
+  /** Porcentaje de descuento que corresponde a `count` unidades (piezas o placas, según se cotice). */
+  function discountPct(tiers, count) {
     var pct = 0, best = -1;
     (tiers || []).forEach(function (t) {
       var min = pos(t.min);
-      if (min > 0 && pieces >= min && min > best) { best = min; pct = clamp(pos(t.pct), 0, 100); }
+      if (min > 0 && count >= min && min > best) { best = min; pct = clamp(pos(t.pct), 0, 100); }
     });
     return pct;
   }
@@ -73,10 +73,10 @@
    *  - Envío: se cobra tal cual (sin margen).
    *  - Redondeo: hacia arriba al múltiplo indicado (sobre subtotal con envío).
    */
-  function priceTail(t, N, pieces, urgent, shipping) {
+  function priceTail(t, N, count, urgent, shipping) {
     var rush = urgent ? N * t.rushPct / 100 : 0;
     var N1 = N + rush;
-    var dPct = discountPct(t.tiers, pieces);
+    var dPct = discountPct(t.tiers, count);
     var discount = N1 * dPct / 100;
     var N2 = N1 - discount;
 
@@ -108,15 +108,48 @@
     };
   }
 
+  /**
+   * Cantidades del trabajo. El costo físico (material, tiempo, máquina) depende de las PLACAS;
+   * el postprocesado y el precio unitario pueden depender de las PIEZAS. La relación entre ambas
+   * la indica el usuario (el archivo del laminador sólo trae las placas):
+   *   rel 'multi' (por defecto): varias piezas en cada placa  → piezas = placas × piezas_por_placa
+   *   rel 'split':               una pieza se reparte en varias placas → piezas = placas ÷ placas_por_pieza
+   * `by` ('piece' | 'plate') indica por qué se cotiza: define el precio unitario que se muestra
+   * y con qué cantidad se cuenta el descuento por volumen.
+   */
   function jobShape(cfg, job) {
     var plates = pos(job.plates);
+    var split = job.rel === 'split';
     var ppp = Math.max(1, Math.floor(pos(job.ppp)) || 1);
+    var ppl = Math.max(1, pos(job.ppl) || 1);
+    var pieces = split ? plates / ppl : plates * ppp;
+    var byPlate = job.by === 'plate';
     return {
       plates: plates,
+      split: split,
       ppp: ppp,
-      pieces: plates * ppp,
+      ppl: ppl,
+      pieces: pieces,
+      byPlate: byPlate,
+      units: byPlate ? plates : pieces,
       minutesPerPlate: pos(job.hours) * 60 + pos(job.minutes)
     };
+  }
+
+  /** Precios unitarios a partir del ingreso por el servicio. */
+  function unitPrices(revenue, s) {
+    var perPiece = s.pieces > 0 ? revenue / s.pieces : 0;
+    var perPlate = s.plates > 0 ? revenue / s.plates : 0;
+    return { unit: s.byPlate ? perPlate : perPiece, unitPiece: perPiece, unitPlate: perPlate };
+  }
+
+  /** Avisos sobre la relación piezas/placas (no revelan costos; se muestran en ambos modos). */
+  function shapeNotes(s) {
+    var notes = [];
+    if (s.split && s.plates > 0 && Math.abs(s.pieces - Math.round(s.pieces)) > 1e-9) {
+      notes.push({ level: 'info', text: 'El número de placas no es múltiplo de las placas por pieza: se cotizan ' + round(s.pieces, 2) + ' piezas.' });
+    }
+    return notes;
   }
 
   /** Desglose completo de costos y precio (modo Taller). */
@@ -180,20 +213,21 @@
     if (pr.method === 'markup') N = cost * Math.max(0, num(pr.markup, 1));
     else N = cost / (1 - clamp(pos(pr.marginPct), 0, 95) / 100);
 
-    var tail = priceTail(tailFromConfig(cfg), N, pieces, !!job.urgent && on('rush'), job.shipping);
+    var tail = priceTail(tailFromConfig(cfg), N, s.units, !!job.urgent && on('rush'), job.shipping);
 
     var revenue = tail.service + tail.roundAdj;            // ingreso por el servicio (sin envío ni IVA)
     var profit = revenue - tail.fees - cost;
     var marginEff = revenue > 0 ? profit / revenue : 0;
+    var up = unitPrices(revenue, s);
 
-    var notes = [];
+    var notes = shapeNotes(s);
     if (tail.minApplied) notes.push({ level: 'info', text: 'Se aplicó el pedido mínimo: el costo calculado es menor al mínimo configurado.' });
     if (revenue > 0 && profit < 0) notes.push({ level: 'warn', text: 'El precio queda por debajo del costo. Revisa el margen, el descuento por volumen o las comisiones.' });
     else if (revenue > 0 && marginEff < 0.1) notes.push({ level: 'warn', text: 'El margen real es menor al 10 %. Es poco colchón para imprevistos.' });
     if (!lines.length) notes.push({ level: 'warn', text: 'No hay material seleccionado en la cotización.' });
 
     return {
-      plates: plates, pieces: pieces, hours: H, gramsNet: gramsNet, gramsBilled: gramsBilled, kwh: kwh,
+      plates: plates, pieces: pieces, byPlate: s.byPlate, units: s.units, hours: H, gramsNet: gramsNet, gramsBilled: gramsBilled, kwh: kwh,
       costs: {
         material: material, depreciation: depreciation, maintenance: maintenance, electricity: electricity,
         failure: failure, labor: labor, design: design, postLabor: postLabor, postSupplies: postSupplies,
@@ -204,7 +238,7 @@
       fees: tail.fees, minAdj: tail.minAdj, minApplied: tail.minApplied,
       service: tail.service, ship: tail.ship, roundAdj: tail.roundAdj,
       subtotal: tail.subtotal, tax: tail.tax, total: tail.total,
-      unit: pieces > 0 ? revenue / pieces : 0,
+      unit: up.unit, unitPiece: up.unitPiece, unitPlate: up.unitPlate,
       profit: profit, marginEff: marginEff, profitPerHour: H > 0 ? profit / H : 0,
       notes: notes
     };
@@ -289,14 +323,16 @@
     if (rates.mods.design) N += pos(job.designH) * b.designH;
     if (rates.mods.post) N += pos(job.postMin) * pieces * b.postMin + pos(job.supplies) * pieces * b.supply;
 
-    var tail = priceTail(rates.tail, N, pieces, !!job.urgent && rates.mods.rush, job.shipping);
+    var tail = priceTail(rates.tail, N, s.units, !!job.urgent && rates.mods.rush, job.shipping);
     var revenue = tail.service + tail.roundAdj;
+    var up = unitPrices(revenue, s);
     return {
-      plates: plates, pieces: pieces, hours: H, gramsNet: gramsNet, N: N,
+      plates: plates, pieces: pieces, byPlate: s.byPlate, units: s.units, hours: H, gramsNet: gramsNet, N: N,
       rush: tail.rush, discountPct: tail.discountPct, discount: tail.discount,
       minApplied: tail.minApplied, service: tail.service, ship: tail.ship, roundAdj: tail.roundAdj,
       subtotal: tail.subtotal, tax: tail.tax, total: tail.total,
-      unit: pieces > 0 ? revenue / pieces : 0
+      unit: up.unit, unitPiece: up.unitPiece, unitPlate: up.unitPlate,
+      notes: shapeNotes(s)
     };
   }
 
@@ -307,6 +343,7 @@
     priceTail: priceTail,
     tailFromConfig: tailFromConfig,
     discountPct: discountPct,
+    jobShape: jobShape,
     costPerGram: costPerGram
   };
 });
