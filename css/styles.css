@@ -2,70 +2,86 @@
    Dirección: ficha técnica industrial. Números monoespaciados, hairlines,
    secciones numeradas y micro-estriación de "capas" (FDM). */
 :root {
-  --bg: #f4f2ee;
-  --surface: #fdfdfc;
-  --surface-2: #f7f5f1;
-  --ink: #1a1917;
-  --muted: #6f6a61;
-  --line: #e2dfd7;
-  --accent: #d9480f;
-  --accent-ink: #ffffff;
-  --accent-soft: #fdeee2;
-  --good: #2b8a3e;
-  --warn: #b35c00;
-  --warn-soft: #fdf0da;
-  --bad: #c92a2a;
-  --bad-soft: #fbe9e9;
-  --info-soft: #e8f1fb;
-  --info: #1864ab;
-  --shadow: 0 1px 2px rgba(20, 18, 10, .05);
+  --bg: #f6f2e9;
+  --surface: #fdfbf5;
+  --surface-2: #f2ede1;
+  --ink: #241c13;
+  --muted: #7c7263;
+  --line: #e4ddcd;
+  --accent: #b26a1b;
+  --accent-ink: #fffaf0;
+  --accent-soft: #f7ecd9;
+  --good: #4a7c3a;
+  --warn: #9c5e08;
+  --warn-soft: #f9eed8;
+  --bad: #b23c2e;
+  --bad-soft: #f8e8e3;
+  --info-soft: #e8eef2;
+  --info: #2f6a8a;
+  --shadow: 0 1px 2px rgba(35, 26, 12, .06);
   --radius: 10px;
   --radius-sm: 6px;
 
   --font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
 
-  /* banda "ticket" siempre oscura (igual en tema claro y oscuro) */
-  --ticket-bg: #1a1916;
-  --ticket-ink: #f2efe8;
-  --ticket-muted: #9d988c;
-  --ticket-accent: #ffa14f;
+  /* banda "ticket" siempre oscura, teñida de espresso */
+  --ticket-bg: #1c150d;
+  --ticket-ink: #f4ecdd;
+  --ticket-muted: #a08f77;
+  --ticket-accent: #f2b45c;
 
   /* micro-estriación de capas de impresión */
-  --lines-light: repeating-linear-gradient(0deg, transparent 0 3px, rgba(20, 18, 10, .04) 3px 4px);
-  --lines-dark: repeating-linear-gradient(0deg, transparent 0 3px, rgba(255, 255, 255, .05) 3px 4px);
+  --lines-light: repeating-linear-gradient(0deg, transparent 0 3px, rgba(36, 28, 19, .04) 3px 4px);
+  --lines-dark: repeating-linear-gradient(0deg, transparent 0 3px, rgba(255, 236, 205, .06) 3px 4px);
 
-  --c-material: #f76707;
-  --c-machine: #1971c2;
-  --c-energy: #f0b400;
-  --c-failure: #c2255c;
-  --c-labor: #7048e8;
-  --c-other: #868e96;
-  --c-fees: #495057;
-  --c-ship: #adb5bd;
-  --c-profit: #2f9e44;
+  /* paleta categórica en tonos tierra */
+  --c-material: #c2542a;
+  --c-machine: #54708c;
+  --c-energy: #d9a62e;
+  --c-failure: #a63d40;
+  --c-labor: #7d5a80;
+  --c-other: #8a8578;
+  --c-fees: #5c5648;
+  --c-ship: #b3ac9c;
+  --c-profit: #5f7f3c;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #131210;
-    --surface: #1c1b18;
-    --surface-2: #232220;
-    --ink: #f2f0ea;
-    --muted: #a09c92;
-    --line: #33312b;
-    --accent: #ff8a4c;
-    --accent-ink: #1a0e05;
-    --accent-soft: #2e1e13;
-    --good: #69db7c;
-    --warn: #ffb84d;
+    --bg: #16110c;
+    --surface: #1f1913;
+    --surface-2: #282119;
+    --ink: #f1e9db;
+    --muted: #a39481;
+    --line: #3a3227;
+    --accent: #f0a848;
+    --accent-ink: #241500;
+    --accent-soft: #352712;
+    --good: #94c973;
+    --warn: #f0b35c;
     --warn-soft: #2f2410;
-    --bad: #ff8787;
-    --bad-soft: #35191a;
-    --info-soft: #14283b;
-    --info: #74c0fc;
-    --shadow: 0 1px 2px rgba(0, 0, 0, .4);
-    --lines-light: repeating-linear-gradient(0deg, transparent 0 3px, rgba(255, 255, 255, .025) 3px 4px);
+    --bad: #e5876f;
+    --bad-soft: #331b14;
+    --info-soft: #1d2830;
+    --info: #8fb8d4;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .45);
+    --ticket-bg: #100c07;
+    --ticket-ink: #f1e9db;
+    --ticket-muted: #998b75;
+    --ticket-accent: #ffc179;
+    --lines-light: repeating-linear-gradient(0deg, transparent 0 3px, rgba(255, 232, 200, .028) 3px 4px);
+
+    /* mismas categorías, iluminadas para el fondo oscuro */
+    --c-material: #e0704a;
+    --c-machine: #7d9cba;
+    --c-energy: #e8bf5a;
+    --c-failure: #c96064;
+    --c-labor: #a184b0;
+    --c-other: #9a9484;
+    --c-fees: #857c6b;
+    --c-ship: #c4bca9;
+    --c-profit: #8fb060;
   }
 }
 
