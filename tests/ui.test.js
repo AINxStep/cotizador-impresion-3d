@@ -211,6 +211,8 @@ test('la cotización cerrada es de sólo lectura y dice "Total de la cotización
   const resumen = UI.quoteSummary(rates);
   assert.match(resumen, /Datos del trabajo/);
   assert.match(resumen, /Contenido/);
+  assert.match(resumen, /\d+ h/, 'el tiempo de impresión se muestra');
+  assert.ok(!resumen.includes('NaN'), 'sin valores NaN en el resumen');
   assert.ok(!resumen.includes('data-path'), 'la cotización cerrada no lleva campos editables');
   const res = UI.resultClient(Calc.quoteFromRates(rates, jobBase()), rates);
   assert.match(res, /Total de la cotización/);

@@ -434,7 +434,7 @@
       ['Contenido', qtyText(q)],
       ['Material', esc(j.lines.map(function (l) { return matName(l.materialId) + ' · ' + fmtN(l.g) + ' g'; }).join(', '))],
       pr && cat.showPrinter ? ['Impresora', esc(pr.name)] : null,
-      ['Tiempo de impresión', duration((q.minutes + q.purgeMin) / 60)],
+      ['Tiempo de impresión', duration(q.hours)],
       j.urgent ? ['Entrega', 'Urgente'] : null,
       j.shipping > 0 ? ['Envío', money(j.shipping, rates.money.code)] : null
     ].filter(Boolean);
