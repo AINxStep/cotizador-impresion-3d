@@ -181,6 +181,7 @@ main { padding: 22px 0 100px; }
 .field small { color: var(--muted); font-size: 12.5px; line-height: 1.35; }
 .check-row { display: inline-flex; align-items: center; gap: 8px; }
 .dur { display: grid; grid-template-columns: 1fr 1.2fr; gap: 8px; }
+.dur > .inp { min-width: 0; }
 .help { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 14px; height: 14px; margin-left: 6px; border: 1px solid var(--muted); border-radius: 50%; color: var(--muted); font-family: var(--mono); font-size: 9.5px; font-weight: 700; cursor: help; vertical-align: 1px; }
 .check-row .help { margin-left: 0; }
 .help:hover, .help:focus { border-color: var(--accent); color: var(--accent); outline: none; }
