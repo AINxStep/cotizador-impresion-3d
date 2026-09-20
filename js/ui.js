@@ -66,7 +66,7 @@
       ? fmtN(s.plates) + ' ' + plural(s.plates, 'placa', 'placas') + ' ÷ ' + fmtN(s.ppl) + ' ' + plural(s.ppl, 'placa', 'placas') + ' por pieza'
       : fmtN(s.plates) + ' ' + plural(s.plates, 'placa', 'placas') + ' × ' + fmtN(s.ppp) + ' ' + plural(s.ppp, 'pieza', 'piezas') + ' por placa';
     var word = s.byPlate ? 'placa' : 'pieza';
-    return eq + ' = ' + fmtN(s.pieces) + ' ' + plural(s.pieces, 'pieza', 'piezas') + ' en total. Se cotiza por ' + word +
+    return eq + ' = ' + fmtN(s.pieces) + ' ' + plural(s.pieces, 'pieza', 'piezas') + ' del pedido. Se cotiza por ' + word +
       ': el descuento por volumen cuenta ' + fmtN(s.units) + ' ' + plural(s.units, s.byPlate ? 'placa' : 'pieza', s.byPlate ? 'placas' : 'piezas') + '.';
   }
 
@@ -209,19 +209,19 @@
     var printer = cat.showPrinter ? field({ path: 'job.printerId', type: 'select', label: 'Impresora', options: cat.printers.map(function (p) { return [p.id, p.name]; }), wide: true }) : '';
 
     var print =
-      '<section class="card"><h2>Datos de la impresión</h2><p class="lead">Lo que muestra tu laminador para <b>una placa</b> (una corrida de impresión).</p>' +
+      '<section class="card"><h2>Datos de la impresión</h2><p class="lead">Material y tiempo son los que muestra tu laminador para <b>una placa</b>; las placas son el <b>total a imprimir para todo el pedido</b>.</p>' +
       '<div class="grid two" style="margin-bottom:14px">' + printer + '</div>' +
       '<div class="label" style="margin-bottom:8px">Material y peso por placa</div>' + lines +
       '<button type="button" class="btn small ghost" data-act="add-line">+ Agregar otro material</button>' +
       '<div class="grid" style="margin-top:16px">' +
       field({ path: 'job.hours', label: 'Tiempo · horas', suffix: 'h' }) +
       field({ path: 'job.minutes', label: 'Tiempo · minutos', suffix: 'min' }) +
-      field({ path: 'job.plates', label: 'Número de placas', step: '1', min: 1, hint: 'Cuántas placas se imprimen. Si cargas un archivo con varias, se llena solo.' }) +
+      field({ path: 'job.plates', label: 'Placas totales del pedido', step: '1', min: 1, hint: 'Placas a imprimir para cubrir todo el pedido. Al cargar un archivo se llenan con las que trae; súbelas si el pedido repite placas.' }) +
       '</div></section>';
 
     // La relación entre placas y piezas la indica el usuario: el archivo del laminador sólo trae las placas.
     var relBlock = '<section class="card"><h2>Piezas y placas</h2>' +
-      '<p class="lead">Una pieza puede repartirse en varias placas, y una placa puede llevar varias piezas (por ejemplo, llaveros). Indica cuál es tu caso y por cuál unidad quieres cotizar.</p>' +
+      '<p class="lead">Las piezas del pedido se deducen de las placas: una pieza puede repartirse en varias placas, y una placa puede llevar varias piezas (por ejemplo, llaveros). Indica cuál es tu caso y por cuál unidad quieres cotizar.</p>' +
       '<div class="grid two">' +
       field({ path: 'job.rel', type: 'select', label: 'Relación entre placas y piezas', rerender: true, wide: true,
         options: [['multi', 'Cada placa lleva una o varias piezas'], ['split', 'Una pieza se reparte en varias placas']] }) +

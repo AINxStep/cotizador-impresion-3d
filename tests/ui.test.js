@@ -19,11 +19,11 @@ function bindJob(over, mode) {
 
 test('qtyLive explica la relación elegida y la unidad de cotización', () => {
   const multi = UI.qtyLive(Calc.jobShape(null, { plates: 3, rel: 'multi', ppp: 12, by: 'piece' }));
-  assert.match(multi, /3 placas × 12 piezas por placa = 36 piezas en total/);
+  assert.match(multi, /3 placas × 12 piezas por placa = 36 piezas del pedido/);
   assert.match(multi, /Se cotiza por pieza/);
   assert.match(multi, /cuenta 36 piezas/);
   const split = UI.qtyLive(Calc.jobShape(null, { plates: 3, rel: 'split', ppl: 3, by: 'plate' }));
-  assert.match(split, /3 placas ÷ 3 placas por pieza = 1 pieza en total/);
+  assert.match(split, /3 placas ÷ 3 placas por pieza = 1 pieza del pedido/);
   assert.match(split, /Se cotiza por placa/);
   assert.match(split, /cuenta 3 placas/);
 });
