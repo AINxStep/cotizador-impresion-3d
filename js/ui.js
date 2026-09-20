@@ -259,8 +259,15 @@
     var iva = (S.mode === 'taller' && S.cfg.money.taxOn)
       ? '<div class="field wide">' + check({ path: 'job.taxOn', label: 'Cobrar IVA (' + fmtN(S.cfg.money.taxRate, 1) + ' %) en esta cotización',
         hint: 'Suma el IVA al total. Para trabajos entre particulares suele no cobrarse: al apagarlo no se suma ni se menciona en la cotización.' }) + '</div>' : '';
-    var more = (extras.length || urgent || iva)
-      ? '<section class="card"><h2>Trabajo adicional</h2><div class="grid">' + extras.join('') + urgent + iva + '</div></section>' : '';
+    // En modo Cliente el trabajo adicional no se ofrece ni se calcula: el estimado es
+    // sólo la maquila (material y tiempo de impresión) y una nota aclara el alcance.
+    var more = S.mode === 'taller'
+      ? ((extras.length || urgent || iva)
+        ? '<section class="card"><h2>Trabajo adicional</h2><div class="grid">' + extras.join('') + urgent + iva + '</div></section>' : '')
+      : '<section class="card"><h2>Trabajo adicional</h2>' +
+        '<div class="note info" style="margin:0">Este estimado cubre sólo la <b>maquila</b> de las piezas: el material y el tiempo de impresión. ' +
+        'No incluye trabajo adicional —diseño o modelado, preparación y postprocesado de piezas, insumos, empaque, envío ni entregas urgentes— ' +
+        'que el taller cotiza por separado según el proyecto.</div></section>';
 
     var project = '<section class="card"><div class="card-head"><h2>Proyecto</h2>' +
       '<button type="button" class="btn small ' + (S.confirmNew ? 'danger' : 'ghost') + '" data-act="new-quote">' +
@@ -436,7 +443,8 @@
   }
 
   // Texto plano y hoja imprimible (siempre versión cliente)
-  var APPROX_NOTE = 'Precio aproximado, sólo como referencia: la cotización real únicamente la emite el taller.';
+  var APPROX_NOTE = 'Precio aproximado de la maquila (material y tiempo de impresión), sólo como referencia: ' +
+    'no incluye diseño, postprocesado, empaque ni envío. La cotización real únicamente la emite el taller.';
   function customerData(q, biz, moneyCfg, mats, approx) {
     var names = S.job.lines.filter(function (l) { return (Number(l.g) || 0) > 0; }).map(function (l) {
       var m = mats.filter(function (x) { return x.id === l.materialId; })[0];

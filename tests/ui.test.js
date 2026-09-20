@@ -232,3 +232,19 @@ test('la calculadora de clientes con colchón avisa que el precio es aproximado'
   const res2 = UI.resultClient(Calc.quoteFromRates(exactas, jobBase()), exactas);
   assert.ok(!/Precio aproximado/.test(res2), 'sin colchón no hay aviso de aproximación');
 });
+
+test('la calculadora de clientes no ofrece trabajo adicional, sólo aclara el alcance', () => {
+  bindJob({ urgent: true }, 'cliente');
+  const h = UI.jobForm(Calc.padRates(Calc.deriveRates(cfg), 1.1));
+  assert.match(h, /Trabajo adicional/);
+  assert.match(h, /maquila/);
+  assert.match(h, /el taller cotiza por separado/);
+  assert.ok(!h.includes('data-path="job.designH"'), 'sin campo de diseño');
+  assert.ok(!h.includes('data-path="job.postMin"'), 'sin postprocesado');
+  assert.ok(!h.includes('data-path="job.supplies"'), 'sin insumos');
+  assert.ok(!h.includes('data-path="job.urgent"'), 'sin urgencia');
+  // en Taller la tarjeta sí lleva sus campos
+  bindJob({ urgent: false });
+  const ht = UI.jobForm(null);
+  assert.match(ht, /data-path="job.designH"/);
+});
