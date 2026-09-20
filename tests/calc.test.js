@@ -537,6 +537,20 @@ test('el colchón de la calculadora de clientes sube los coeficientes y marca "a
   close(Calc.quoteFromRates(sinColchon, job).total, Calc.quoteFromRates(base, job).total);
 });
 
+test('la calculadora de clientes no aplica el descuento por volumen, sólo lo anuncia', () => {
+  const cfg = simpleCfg();
+  cfg.modules.discounts = { on: true, tiers: [{ min: 5, pct: 10 }] };
+  const job = simpleJob({ ppp: 10 }); // 10 piezas: en el taller sería 10 % de descuento
+  const padded = Calc.padRates(Calc.linkRates(cfg, job), 1.1);
+  assert.equal(padded.tail.tiers.length, 0, 'los niveles no se aplican al precio');
+  assert.equal(padded.discountTiers.length, 1, 'pero quedan disponibles como información');
+  assert.equal(Calc.quoteFromRates(padded, job).discountPct, 0, 'precio del cliente sin descuento');
+  // la cotización cerrada sí lleva el descuento aplicado, como en el taller
+  const cerrada = Calc.linkRates(cfg, job);
+  assert.ok(cerrada.tail.tiers.length > 0);
+  assert.equal(Calc.quoteFromRates(cerrada, job).discountPct, 10);
+});
+
 test('multiplicador 0 o vacío dispara advertencia en vez de un $0 silencioso', () => {
   const cfg = simpleCfg();
   cfg.pricing = { method: 'markup', markup: 0, marginPct: 40 };

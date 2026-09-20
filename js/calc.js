@@ -340,8 +340,9 @@
     };
   }
 
-  /** Colchón de la calculadora de clientes: multiplica los coeficientes de precio por `f`
-   *  y marca las tarifas como aproximadas (el aviso lo muestra la vista del cliente). */
+  /** Tarifas para la calculadora de clientes: colchón del `f` sobre los coeficientes de
+   *  precio, marca de "aproximado", y el descuento por volumen pasa a informativo —
+   *  no se aplica al precio que calcula el cliente (es decisión del taller, se anuncia). */
   function padRates(rates, f) {
     f = pos(f) || 1;
     var r = JSON.parse(JSON.stringify(rates));
@@ -349,6 +350,8 @@
     r.machines.forEach(function (m) { m.ph *= f; });
     ['job', 'plate', 'designH', 'postMin', 'supply'].forEach(function (k) { r.base[k] *= f; });
     r.approx = f > 1;
+    r.discountTiers = (r.tail.tiers || []).slice();
+    r.tail.tiers = [];
     return r;
   }
 

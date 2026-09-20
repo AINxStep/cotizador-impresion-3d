@@ -391,11 +391,20 @@
     if (rates.biz.notes) foot.push(esc(rates.biz.notes));
     if (rates.biz.contact) foot.push('Contacto: ' + esc(rates.biz.contact));
     var priceLabel = S.quoteLink ? 'Total de la cotización' + (taxOn ? ' (IVA incluido)' : '') : 'Precio estimado' + (taxOn ? ' con IVA' : '');
+    // En la calculadora de clientes los descuentos no se aplican: sólo se anuncian
+    var discInfo = '';
+    if (rates.discountTiers && rates.discountTiers.length) {
+      var ts = rates.discountTiers.map(function (t) {
+        return fmtN(t.pct, 1) + ' % desde ' + fmtN(t.min) + ' ' + plural(t.min, unitWord(q), unitWord(q) + 's');
+      }).join(' · ');
+      discInfo = '<div class="note info">El taller maneja descuentos por volumen (' + ts + '). No están incluidos en este precio: se aplican en la cotización final.</div>';
+    }
     return '<section class="card result"><div class="price-head"><div class="label">' + priceLabel + '</div><div class="price">' + m(q.total) + '</div>' +
       '<div class="sub">' + qtyText(q) + '</div></div>' +
       notesHtml(q.notes) +
       (q.minApplied ? '<div class="note info">Se aplica el pedido mínimo del taller.</div>' : '') +
       '<div class="client-lines">' + lines.map(function (l) { return '<div><span>' + l[0] + '</span><span>' + l[1] + '</span></div>'; }).join('') + '</div>' +
+      discInfo +
       '<p class="sub" style="margin-top:12px">' + foot.join('<br>') + '</p>' +
       '<div class="btn-row"><button type="button" class="btn primary" data-act="copy-quote">Copiar cotización</button>' +
       '<button type="button" class="btn" data-act="pdf">Descargar PDF</button></div></section>';

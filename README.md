@@ -163,7 +163,7 @@ El precio del modo Cliente sale de **tarifas de venta** derivadas de tu configur
 En *Configuración del taller → Compartir con clientes* hay dos enlaces, ambos codificados en la parte `#c=…` de la URL (no se envía a ningún servidor):
 
 - **Enlace de esta cotización** (recomendado): abre la cotización actual ya calculada y de sólo lectura — el cliente ve el precio exacto que definiste, el desglose público y la vigencia, sin poder modificar nada.
-- **Calculadora para clientes:** tu cliente captura sus propios datos (por ejemplo, de un `.gcode` que ya tenga) con tus tarifas **más un 10 % de aproximación**, y la página avisa siempre que el precio es sólo orientativo y que la cotización real la emite el taller. Sirve para dar una idea del costo, no para cerrar un precio.
+- **Calculadora para clientes:** tu cliente captura sus propios datos (por ejemplo, de un `.gcode` que ya tenga) con tus tarifas **más un 10 % de aproximación**, sin descuentos por volumen aplicados (se anuncian sólo como información), y la página avisa siempre que el precio es sólo orientativo y que la cotización real la emite el taller. Sirve para dar una idea del costo, no para cerrar un precio.
 
 Cualquiera con cualquiera de los dos enlaces puede ver esas tarifas de venta.
 

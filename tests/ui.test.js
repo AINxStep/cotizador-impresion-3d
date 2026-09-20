@@ -224,6 +224,10 @@ test('la calculadora de clientes con colchón avisa que el precio es aproximado'
   assert.match(res, /Precio aproximado/);
   assert.match(res, /la emite el taller/);
   assert.match(res, /Precio estimado/);
+  // los descuentos del taller se anuncian como información, no se aplican
+  assert.match(res, /descuentos por volumen/);
+  assert.match(res, /se aplican en la cotización final/);
+  assert.ok(!res.includes('Descuento por volumen incluido'), 'el descuento no sale aplicado en el precio');
   const exactas = Calc.deriveRates(cfg);
   const res2 = UI.resultClient(Calc.quoteFromRates(exactas, jobBase()), exactas);
   assert.ok(!/Precio aproximado/.test(res2), 'sin colchón no hay aviso de aproximación');
