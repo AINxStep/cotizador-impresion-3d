@@ -53,7 +53,7 @@
     } catch (e) { return null; }
   }
   function buildLink() {
-    var code = b64urlEncode(JSON.stringify(Calc.deriveRates(S.cfg)));
+    var code = b64urlEncode(JSON.stringify(Calc.linkRates(S.cfg, S.job)));
     return window.location.href.split('#')[0] + '#c=' + code;
   }
 

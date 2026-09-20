@@ -478,3 +478,28 @@ test('las tarifas públicas y los enlaces anteriores no dependen de la relación
   assert.equal(q.byPlate, false);
   close(q.total, Calc.computeQuote(cfg, viejo).total, 0.01);
 });
+
+test('el enlace de clientes lleva el IVA efectivo de la cotización', () => {
+  const cfg = simpleCfg();
+  const sinIva = Calc.linkRates(cfg, simpleJob({ taxOn: false }));
+  assert.equal(sinIva.money.taxOn, false, 'con IVA apagado en la cotización, el enlace no lo cobra');
+  assert.equal(sinIva.tail.taxOn, false);
+  const conIva = Calc.linkRates(cfg, simpleJob({ taxOn: true }));
+  assert.equal(conIva.money.taxOn, true, 'con IVA encendido se conserva');
+  const sinFlag = Calc.linkRates(cfg, simpleJob()); // trabajos viejos sin el campo
+  assert.equal(sinFlag.money.taxOn, true, 'sin el flag no cambia nada');
+  // si el taller no cobra IVA globalmente, el trabajo no puede encenderlo en el enlace
+  const cfgSin = simpleCfg({ money: { code: 'MXN', taxRate: 16, taxOn: false, rounding: 0 } });
+  assert.equal(Calc.linkRates(cfgSin, simpleJob({ taxOn: true })).money.taxOn, false);
+});
+
+test('multiplicador 0 o vacío dispara advertencia en vez de un $0 silencioso', () => {
+  const cfg = simpleCfg();
+  cfg.pricing = { method: 'markup', markup: 0, marginPct: 40 };
+  const q = Calc.computeQuote(cfg, simpleJob());
+  assert.equal(q.total > 0, false, 'el precio queda en 0 (con IVA sigue en 0)');
+  assert.ok(q.notes.some(function (n) { return n.level === 'warn' && /ultiplicador/.test(n.text); }),
+    'hay aviso de multiplicador inválido');
+  const ok = Calc.computeQuote(simpleCfg({ pricing: { method: 'markup', markup: 2, marginPct: 40 } }), simpleJob());
+  assert.ok(!ok.notes.some(function (n) { return /ultiplicador/.test(n.text); }), 'con multiplicador válido no hay aviso');
+});

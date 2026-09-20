@@ -6,6 +6,13 @@
   <title>Cotizador de Impresión 3D</title>
   <meta name="description" content="Calcula el precio de un proyecto de impresión 3D con todos los costos: material, tiempo de máquina, electricidad, mano de obra, fallas, margen, comisiones e IVA.">
   <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#1c2154">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Cotizador de Impresión 3D">
+  <meta property="og:description" content="Calcula el precio de un proyecto de impresión 3D con todos los costos a la vista: material, máquina, electricidad, mano de obra, fallas, margen e IVA.">
+  <meta property="og:url" content="https://ainxstep.github.io/cotizador-impresion-3d/">
+  <meta property="og:image" content="https://ainxstep.github.io/cotizador-impresion-3d/docs/captura-claro.png">
+  <meta name="twitter:card" content="summary_large_image">
   <script>
     // Tema antes del primer pintado: evita el destello con el tema equivocado.
     try {
@@ -15,7 +22,7 @@
     } catch (e) { /* sin localStorage: queda el tema claro por defecto */ }
   </script>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M16 3 28 9.5 16 16 4 9.5z' fill='%23e05a1f'/%3E%3Cpath d='M4 14.2 16 20.7 28 14.2' fill='none' stroke='%23e05a1f' stroke-width='2.4' stroke-linejoin='round' stroke-linecap='round'/%3E%3Cpath d='M4 19.4 16 25.9 28 19.4' fill='none' stroke='%23e05a1f' stroke-width='2.4' stroke-linejoin='round' stroke-linecap='round' opacity='.55'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="css/styles.css?v=5">
+  <link rel="stylesheet" href="css/styles.css?v=6">
 </head>
 <body>
   <div id="app"></div>
@@ -23,11 +30,11 @@
   <div id="toast" role="status" aria-live="polite"></div>
   <noscript><p style="padding:24px">Este cotizador necesita JavaScript para funcionar.</p></noscript>
 
-  <script src="js/defaults.js?v=5"></script>
-  <script src="js/calc.js?v=5"></script>
-  <script src="js/importers.js?v=5"></script>
-  <script src="js/pdf.js?v=5"></script>
-  <script src="js/ui.js?v=5"></script>
-  <script src="js/app.js?v=5"></script>
+  <script src="js/defaults.js?v=6"></script>
+  <script src="js/calc.js?v=6"></script>
+  <script src="js/importers.js?v=6"></script>
+  <script src="js/pdf.js?v=6"></script>
+  <script src="js/ui.js?v=6"></script>
+  <script src="js/app.js?v=6"></script>
 </body>
 </html>

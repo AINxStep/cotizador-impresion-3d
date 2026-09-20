@@ -232,6 +232,7 @@
 
     var notes = shapeNotes(s);
     if (tail.minApplied) notes.push({ level: 'info', text: 'Se aplicó el pedido mínimo: el costo calculado es menor al mínimo configurado.' });
+    if (pr.method === 'markup' && !(pos(pr.markup) > 0)) notes.push({ level: 'warn', text: 'El multiplicador es 0 o está vacío: el precio sale en $0. En Configuración debe ser mayor que cero.' });
     if (revenue > 0 && profit < 0) notes.push({ level: 'warn', text: 'El precio queda por debajo del costo. Revisa el margen, el descuento por volumen o las comisiones.' });
     else if (revenue > 0 && marginEff < 0.1) notes.push({ level: 'warn', text: 'El margen real es menor al 10 %. Es poco colchón para imprevistos.' });
     if (!lines.length) notes.push({ level: 'warn', text: 'No hay material seleccionado en la cotización.' });
@@ -308,6 +309,16 @@
     };
   }
 
+  /** Tarifas para el enlace de clientes: las del taller, con el IVA efectivo de la
+   *  cotización actual — si el trabajo tiene el IVA apagado, el enlace tampoco lo cobra. */
+  function linkRates(cfg, job) {
+    var r = deriveRates(cfg);
+    var taxOn = r.money.taxOn && !(job && job.taxOn === false);
+    r.money.taxOn = taxOn;
+    r.tail.taxOn = taxOn;
+    return r;
+  }
+
   /** Precio a partir de tarifas de venta (modo Cliente). No expone costos. */
   function quoteFromRates(rates, job) {
     var b = rates.base;
@@ -349,6 +360,7 @@
   return {
     computeQuote: computeQuote,
     deriveRates: deriveRates,
+    linkRates: linkRates,
     quoteFromRates: quoteFromRates,
     priceTail: priceTail,
     tailFromConfig: tailFromConfig,
