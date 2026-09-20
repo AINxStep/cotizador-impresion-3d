@@ -37,7 +37,7 @@ Es una página estática (HTML + CSS + JavaScript, sin servidor ni dependencias)
 - Módulos opcionales que se activan o desactivan: diseño y modelado, postprocesado e insumos, multicolor y purga, empaque, comisiones de plataforma o cobro, pedido mínimo, recargo por urgencia y descuento por volumen.
 - Margen sobre el precio **o** multiplicador sobre el costo, con la equivalencia entre ambos.
 - Moneda configurable (MXN por defecto), IVA opcional y redondeo del precio hacia arriba. El IVA se puede apagar **por cotización** — útil para trabajos entre particulares: al desmarcarlo no se suma ni se menciona en la cotización del cliente.
-- Cotización para el cliente: copiar como texto o imprimir / guardar como PDF (siempre sin costos internos).
+- Cotización para el cliente: copiar como texto o **descargar como PDF** con un clic — el documento se genera en el navegador, sin diálogo de impresión (siempre sin costos internos).
 - Enlace para clientes, respaldo de la configuración en un archivo JSON y selector de tema claro, oscuro o automático.
 - Botón **Nueva cotización**: limpia los datos del trabajo (pesos, tiempos y archivo importado) para empezar de cero sin restos de la cotización anterior.
 - Tu configuración y el trabajo en curso se guardan sólo en tu navegador (`localStorage`).
@@ -125,7 +125,7 @@ Las **placas totales** del trabajo son placas por corrida × corridas; de ellas 
 
 **Cotizar por** (pieza o placa) decide dos cosas:
 
-- **El precio unitario** que se muestra en el resultado, en el texto copiado y en la hoja para imprimir: *precio por pieza* o *precio por placa* (el otro se muestra como equivalencia en el modo Taller).
+- **El precio unitario** que se muestra en el resultado, en el texto copiado y en el PDF: *precio por pieza* o *precio por placa* (el otro se muestra como equivalencia en el modo Taller).
 - **La cantidad con la que se aplica el descuento por volumen.** Los niveles de la configuración (por ejemplo, desde 5 y desde 10) cuentan piezas o placas según lo elegido.
 
 Qué depende de qué: el **material, el tiempo de máquina, la electricidad y las fallas** dependen de las **corridas**; el **manejo y la purga** dependen de las **placas totales**; el **postprocesado y sus insumos** dependen de las **piezas**. Cambiar la relación o la unidad de cotización no cambia el costo del trabajo; el total sólo se mueve si el descuento por volumen cambia de nivel o si hay postprocesado (que se cobra por pieza).
@@ -180,7 +180,7 @@ Para compartir enlaces con clientes usa la versión publicada, porque un enlace 
 2. En *Build and deployment* elige **Deploy from a branch**, rama `main` y carpeta `/ (root)`.
 3. En un par de minutos queda disponible en `https://<tu-usuario>.github.io/<nombre-del-repositorio>/`.
 
-> **Al modificar JS o CSS:** los scripts y la hoja de estilos se cargan con una versión en la URL (`js/app.js?v=3`, `css/styles.css?v=3` en `index.html`) para romper la caché del navegador. **Incrementa ese número** (`?v=4`, `?v=5`…) en cada cambio que toque `js/` o `css/`; si no, los visitantes pueden quedarse con una mezcla de archivos viejos y nuevos.
+> **Al modificar JS o CSS:** los scripts y la hoja de estilos se cargan con una versión en la URL (`js/app.js?v=5`, `css/styles.css?v=5` en `index.html`) para romper la caché del navegador. **Incrementa ese número** (`?v=6`, `?v=7`…) en cada cambio que toque `js/` o `css/`; si no, los visitantes pueden quedarse con una mezcla de archivos viejos y nuevos.
 
 ## Pruebas
 
@@ -197,6 +197,7 @@ index.html            Página principal
 css/styles.css        Estilos (claro/oscuro, móvil, impresión)
 js/calc.js            Motor de cálculo (sin dependencias, corre en navegador y Node)
 js/importers.js       Lectura de .gcode.3mf y .gcode (ZIP mínimo, sin librerías)
+js/pdf.js             Generación del PDF de la cotización (sin librerías)
 js/defaults.js        Valores iniciales de ejemplo
 js/ui.js              Constructores de HTML y formato
 js/app.js             Estado, eventos y persistencia
