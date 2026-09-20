@@ -41,6 +41,8 @@ Es una página estática (HTML + CSS + JavaScript, sin servidor ni dependencias)
 - Enlace para clientes, respaldo de la configuración en un archivo JSON y selector de tema claro, oscuro o automático.
 - Botón **Nueva cotización**: limpia los datos del trabajo (pesos, tiempos y archivo importado) para empezar de cero sin restos de la cotización anterior.
 - Tu configuración y el trabajo en curso se guardan sólo en tu navegador (`localStorage`).
+- **Primera visita guiada:** si aún no has guardado configuración, la página abre en *Configuración del taller* con un aviso para ajustar tus datos antes de cotizar.
+- **Ayuda en cada campo:** todos los campos de Cotizar y de Configuración llevan un icono **«?»** que muestra la explicación concreta del campo al pasar el cursor (o al enfocarlo con el teclado).
 
 > Todos los valores iniciales son **ejemplos**. Reemplázalos con los de tu taller en la pestaña *Configuración del taller*.
 
