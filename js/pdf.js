@@ -136,8 +136,8 @@
       '<</Type/Catalog/Pages 2 0 R>>',
       '<</Type/Pages/Kids[3 0 R]/Count 1>>',
       '<</Type/Page/Parent 2 0 R/MediaBox[0 0 ' + W + ' ' + H + ']/Resources<</Font<</F1 4 0 R/F2 5 0 R>>>>/Contents 6 0 R>>',
-      '<</Type/Font/Subtype/Type1/BaseFont/Helvetica>>',
-      '<</Type/Font/Subtype/Type1/BaseFont/Helvetica-Bold>>',
+      '<</Type/Font/Subtype/Type1/BaseFont/Helvetica/Encoding/WinAnsiEncoding>>',
+      '<</Type/Font/Subtype/Type1/BaseFont/Helvetica-Bold/Encoding/WinAnsiEncoding>>',
       '<</Length ' + stream.length + '>>\nstream\n' + stream + '\nendstream'
     ];
     var out = '%PDF-1.4\n';
