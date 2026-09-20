@@ -386,10 +386,12 @@
     }
     lines.push(['Total', m(q.total)]);
     var foot = [];
+    if (rates.approx) foot.push('Precio aproximado, sólo como referencia: la cotización real únicamente la emite el taller.');
     if (rates.biz.validityDays) foot.push('Vigencia de la cotización: ' + fmtN(rates.biz.validityDays) + ' días.');
     if (rates.biz.notes) foot.push(esc(rates.biz.notes));
     if (rates.biz.contact) foot.push('Contacto: ' + esc(rates.biz.contact));
-    return '<section class="card result"><div class="price-head"><div class="label">Precio estimado' + (taxOn ? ' con IVA' : '') + '</div><div class="price">' + m(q.total) + '</div>' +
+    var priceLabel = S.quoteLink ? 'Total de la cotización' + (taxOn ? ' (IVA incluido)' : '') : 'Precio estimado' + (taxOn ? ' con IVA' : '');
+    return '<section class="card result"><div class="price-head"><div class="label">' + priceLabel + '</div><div class="price">' + m(q.total) + '</div>' +
       '<div class="sub">' + qtyText(q) + '</div></div>' +
       notesHtml(q.notes) +
       (q.minApplied ? '<div class="note info">Se aplica el pedido mínimo del taller.</div>' : '') +
@@ -399,15 +401,41 @@
       '<button type="button" class="btn" data-act="pdf">Descargar PDF</button></div></section>';
   }
 
+  /** Resumen de sólo lectura del trabajo en una cotización cerrada (enlace con trabajo).
+   *  Muestra qué se cotizó sin ofrecer campos editables. */
+  function quoteSummary(rates) {
+    var j = S.job;
+    var q = Calc.quoteFromRates(rates, j);
+    var cat = catalog(rates);
+    var matName = function (id) {
+      var m = cat.mats.filter(function (x) { return x.id === id; })[0];
+      return m ? m.name : '—';
+    };
+    var pr = cat.printers.filter(function (p) { return p.id === j.printerId; })[0];
+    var rows = [
+      ['Proyecto', esc(j.name) || '—'],
+      j.client ? ['Cliente', esc(j.client)] : null,
+      ['Contenido', qtyText(q)],
+      ['Material', esc(j.lines.map(function (l) { return matName(l.materialId) + ' · ' + fmtN(l.g) + ' g'; }).join(', '))],
+      pr && cat.showPrinter ? ['Impresora', esc(pr.name)] : null,
+      ['Tiempo de impresión', duration((q.minutes + q.purgeMin) / 60)],
+      j.urgent ? ['Entrega', 'Urgente'] : null,
+      j.shipping > 0 ? ['Envío', money(j.shipping, rates.money.code)] : null
+    ].filter(Boolean);
+    return '<section class="card"><h2>Datos del trabajo</h2>' +
+      '<div class="client-lines">' + rows.map(function (r) { return '<div><span>' + r[0] + '</span><span>' + r[1] + '</span></div>'; }).join('') + '</div></section>';
+  }
+
   // Texto plano y hoja imprimible (siempre versión cliente)
-  function customerData(q, biz, moneyCfg, mats) {
+  var APPROX_NOTE = 'Precio aproximado, sólo como referencia: la cotización real únicamente la emite el taller.';
+  function customerData(q, biz, moneyCfg, mats, approx) {
     var names = S.job.lines.filter(function (l) { return (Number(l.g) || 0) > 0; }).map(function (l) {
       var m = mats.filter(function (x) { return x.id === l.materialId; })[0];
       return m ? m.name : '';
     }).filter(Boolean);
     var uniq = names.filter(function (n, i) { return names.indexOf(n) === i; });
     return {
-      biz: biz, money: moneyCfg, materials: uniq.join(', '), q: q,
+      biz: biz, money: moneyCfg, materials: uniq.join(', '), q: q, approx: !!approx,
       date: new Date().toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' })
     };
   }
@@ -424,6 +452,7 @@
     if (q.ship > 0) out.push('Envío: ' + m(q.ship));
     if (q.taxOn) { out.push('Subtotal: ' + m(q.subtotal)); out.push('IVA (' + fmtN(d.money.taxRate, 1) + ' %): ' + m(q.tax)); }
     out.push('TOTAL: ' + m(q.total));
+    if (d.approx) out.push(APPROX_NOTE);
     if (d.biz.validityDays) out.push('Vigencia: ' + fmtN(d.biz.validityDays) + ' días');
     if (d.biz.notes) out.push(d.biz.notes);
     if (d.biz.contact) out.push('Contacto: ' + d.biz.contact);
@@ -435,6 +464,7 @@
     var q = d.q, j = S.job;
     var importe = q.service + q.roundAdj;
     var foot = [];
+    if (d.approx) foot.push(APPROX_NOTE);
     if (d.biz.validityDays) foot.push('Vigencia de la cotización: ' + fmtN(d.biz.validityDays) + ' días.');
     if (d.biz.notes) foot.push(d.biz.notes);
     return '<div class="sheet"><h1>Cotización</h1><div>' + esc(d.biz.name || '') + '</div>' +
@@ -467,6 +497,7 @@
     }
     totals.push(['TOTAL', m(q.total)]);
     var foot = [];
+    if (d.approx) foot.push(APPROX_NOTE);
     if (d.biz.validityDays) foot.push('Vigencia de la cotización: ' + fmtN(d.biz.validityDays) + ' días.');
     if (d.biz.notes) foot.push(d.biz.notes);
     return {
@@ -565,13 +596,17 @@
       modCard('rush', 'Recargo por urgencia', 'Casilla “entrega urgente” en la cotización.', field({ path: 'cfg.modules.rush.pct', label: 'Recargo', suffix: '%', hint: 'Porcentaje extra sobre el precio cuando se marca «entrega urgente».' })) +
       modCard('discounts', 'Descuento por volumen', 'Reduce el precio según la cantidad del pedido, en piezas o en placas (según por cuál unidad cotices).', tiers) + '</section>';
 
+    var linkLabel = extra.linkKind === 'quote' ? 'Enlace de esta cotización' : 'Enlace de la calculadora para clientes';
     var link = extra.link
-      ? '<div class="linkbox"><input readonly id="link-out" value="' + esc(extra.link) + '" aria-label="Enlace para clientes"><button type="button" class="btn primary" data-act="copy-link">Copiar</button></div>' +
-        '<small style="display:block;margin-top:6px;color:var(--muted)">' + extra.link.length + ' caracteres.' + (location.protocol === 'file:' ? ' Estás usando el archivo local: para que tus clientes abran el enlace, publica el sitio (por ejemplo con GitHub Pages) y genera el enlace desde esa dirección.' : '') + '</small>'
+      ? '<div class="linkbox"><input readonly id="link-out" value="' + esc(extra.link) + '" aria-label="' + linkLabel + '"><button type="button" class="btn primary" data-act="copy-link">Copiar</button></div>' +
+        '<small style="display:block;margin-top:6px;color:var(--muted)">' + linkLabel + ' · ' + extra.link.length + ' caracteres.' + (location.protocol === 'file:' ? ' Estás usando el archivo local: para que tus clientes abran el enlace, publica el sitio (por ejemplo con GitHub Pages) y genera el enlace desde esa dirección.' : '') + '</small>'
       : '';
     var share = '<section class="card"><h2>Compartir con clientes</h2>' +
-      '<p class="lead">Genera un enlace del cotizador en modo Cliente. Lleva <b>sólo tus tarifas de venta</b> (precio por gramo, por hora, mínimo, descuentos e IVA); nunca tus costos, márgenes ni utilidad. Cualquiera con el enlace puede ver esas tarifas.</p>' +
-      '<div class="btn-row" style="margin-top:0"><button type="button" class="btn primary" data-act="gen-link">Generar enlace para clientes</button>' +
+      '<p class="lead"><b>Enlace de esta cotización</b> (recomendado): abre la cotización actual ya calculada y de sólo lectura — tu cliente ve el precio exacto que definiste, sin poder modificarlo.<br>' +
+      '<b>Calculadora para clientes:</b> tu cliente captura sus propios datos con tus tarifas, más un 10 % de aproximación, y con el aviso de que la cotización real la emite el taller.<br>' +
+      'Ambos enlaces llevan <b>sólo tus tarifas de venta</b>; nunca tus costos, márgenes ni utilidad. Cualquiera con el enlace puede ver esas tarifas.</p>' +
+      '<div class="btn-row" style="margin-top:0"><button type="button" class="btn primary" data-act="gen-quote-link">Enlace de esta cotización</button>' +
+      '<button type="button" class="btn" data-act="gen-calc-link">Calculadora para clientes</button>' +
       '<button type="button" class="btn" data-act="mode" data-mode="cliente">Vista previa como cliente</button></div>' + link + '</section>';
 
     var backup = '<section class="card"><h2>Respaldo y restablecer</h2><p class="lead">Tu configuración se guarda sólo en este navegador. Exporta un respaldo para llevarla a otro equipo.</p>' +
@@ -644,7 +679,7 @@
     bind: bind, esc: esc, getPath: getPath, setPath: setPath, money: money, fmtN: fmtN, pct: pct, duration: duration,
     plural: plural, qtyText: qtyText, qtyLive: qtyLive,
     catalog: catalog, curCode: curCode, header: header, tabs: tabs, jobForm: jobForm, hasData: hasData,
-    resultTaller: resultTaller, resultClient: resultClient, customerData: customerData, quoteText: quoteText,
+    resultTaller: resultTaller, resultClient: resultClient, quoteSummary: quoteSummary, customerData: customerData, quoteText: quoteText,
     sheetHtml: sheetHtml, pdfSpec: pdfSpec, configView: configView, methodView: methodView, idFor: idFor
   };
 })(typeof self !== 'undefined' ? self : (typeof globalThis !== 'undefined' ? globalThis : this));

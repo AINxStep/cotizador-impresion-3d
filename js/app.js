@@ -44,25 +44,37 @@
     return r && r.v === 1 && isObj(r.base) && Array.isArray(r.mats) && r.mats.length && Array.isArray(r.machines) &&
       r.machines.length && isObj(r.mods) && isObj(r.tail) && isObj(r.money) && isObj(r.biz);
   }
-  function ratesFromHash() {
+  /** Lee el enlace de clientes. Formato nuevo: {r: tarifas, j: trabajo} — con `j` es una
+   *  cotización cerrada (sólo lectura); sin `j` es la calculadora de autoservicio.
+   *  El formato anterior (tarifas sueltas) sigue funcionando como calculadora. */
+  function linkFromHash() {
     var m = /^#c=([\w-]+)$/.exec(window.location.hash || '');
     if (!m) return null;
     try {
-      var r = JSON.parse(b64urlDecode(m[1]));
-      return validRates(r) ? r : null;
+      var d = JSON.parse(b64urlDecode(m[1]));
+      if (d && d.r) return { rates: validRates(d.r) ? d.r : null, job: d.j ? Calc.publicJob(d.j) : null };
+      return validRates(d) ? { rates: d, job: null } : null;
     } catch (e) { return null; }
   }
-  function buildLink() {
-    var code = b64urlEncode(JSON.stringify(Calc.linkRates(S.cfg, S.job)));
-    return window.location.href.split('#')[0] + '#c=' + code;
+  /** Enlace de cotización cerrada: lleva las tarifas y el trabajo tal como quedó
+   *  capturado; quien lo abre ve el resultado sin poder modificarlo. */
+  function buildQuoteLink() {
+    var payload = { r: Calc.linkRates(S.cfg, S.job), j: Calc.publicJob(S.job) };
+    return window.location.href.split('#')[0] + '#c=' + b64urlEncode(JSON.stringify(payload));
+  }
+  /** Enlace de calculadora para clientes: lleva las tarifas con un colchón del 10 %
+   *  — lo que el cliente calcule queda por encima del precio real como aproximación. */
+  function buildCalcLink() {
+    var payload = { r: Calc.padRates(Calc.linkRates(S.cfg, S.job), 1.1), j: null };
+    return window.location.href.split('#')[0] + '#c=' + b64urlEncode(JSON.stringify(payload));
   }
 
   // ------------------------------------------------------------------
   // Estado
   // ------------------------------------------------------------------
   var S = {
-    cfg: null, job: null, mode: 'taller', tab: 'cotizar', fromLink: false,
-    linkRates: null, imp: null, link: '', confirmReset: false, confirmNew: false, theme: 'auto',
+    cfg: null, job: null, mode: 'taller', tab: 'cotizar', fromLink: false, quoteLink: false,
+    linkRates: null, imp: null, link: '', linkKind: '', confirmReset: false, confirmNew: false, theme: 'auto',
     firstRun: false
   };
   UI.bind(S);
@@ -77,18 +89,19 @@
   }
   function initState() {
     try { S.theme = window.localStorage.getItem(LS_THEME) || 'auto'; } catch (e) { /* sin localStorage */ }
-    var linkRates = ratesFromHash();
-    if (linkRates) {
+    var link = linkFromHash();
+    if (link && link.rates) {
       S.fromLink = true;
       S.mode = 'cliente';
-      S.linkRates = linkRates;
+      S.quoteLink = !!link.job;
+      S.linkRates = link.rates;
       S.cfg = Defaults.makeConfig(); // sin uso en este modo; evita nulos
-      S.job = {
-        name: '', client: '', printerId: linkRates.machines[0].id,
-        lines: [{ materialId: linkRates.mats[0].id, g: 0 }], hours: 0, minutes: 0, plates: 1,
+      S.job = link.job || {
+        name: '', client: '', printerId: link.rates.machines[0].id,
+        lines: [{ materialId: link.rates.mats[0].id, g: 0 }], hours: 0, minutes: 0, plates: 1,
         runs: 1, rel: 'multi', ppp: 1, ppl: 1, by: 'piece',
         designH: 0, postMin: 0, supplies: 0, purgeG: 0, extraMin: 0, urgent: false, shipping: 0,
-        taxOn: linkRates.money.taxOn
+        taxOn: link.rates.money.taxOn
       };
       return;
     }
@@ -126,10 +139,11 @@
     saveTimer = setTimeout(function () { saveJSON(LS_CFG, S.cfg); saveJSON(LS_JOB, S.job); }, 250);
   }
 
-  /** Tarifas activas: las del enlace, o las derivadas de la config (vista previa). */
+  /** Tarifas activas: las del enlace, o las de la vista previa como cliente — con el
+   *  mismo colchón del 10 % que lleva el enlace de calculadora (vista fiel). */
   function activeRates() {
     if (S.fromLink) return S.linkRates;
-    return S.mode === 'cliente' ? Calc.deriveRates(S.cfg) : null;
+    return S.mode === 'cliente' ? Calc.padRates(Calc.linkRates(S.cfg, S.job), 1.1) : null;
   }
 
   /** Mantiene consistentes las referencias del trabajo con el catálogo vigente. */
@@ -147,10 +161,21 @@
   function $(sel) { return document.querySelector(sel); }
 
   function tabContent(rates) {
-    if (S.mode === 'taller' && S.tab === 'config') return UI.configView({ link: S.link, confirmReset: S.confirmReset });
+    if (S.mode === 'taller' && S.tab === 'config') return UI.configView({ link: S.link, linkKind: S.linkKind, confirmReset: S.confirmReset });
     if (S.mode === 'taller' && S.tab === 'metodo') return UI.methodView();
-    var banner = (!S.fromLink && S.mode === 'cliente')
-      ? '<div class="banner"><span>Vista previa: así verán la cotización tus clientes. No se muestra ningún costo interno.</span><button type="button" data-act="mode" data-mode="taller">Volver al taller</button></div>' : '';
+    // Cotización cerrada: el trabajo viene en el enlace y se muestra de sólo lectura —
+    // quien recibe el enlace ve exactamente el precio que el taller calculó.
+    if (S.quoteLink) {
+      return '<div class="banner"><span>Esta cotización fue emitida por el taller: el precio y las condiciones son las que aquí se muestran.</span></div>' +
+        '<div class="layout"><div class="col-form">' + UI.quoteSummary(rates) + '</div>' +
+        '<aside class="col-result" aria-label="Resultado"><div id="results"></div></aside></div>' +
+        '<div class="mobile-total" id="mobile-total"><div><div class="mt">Total</div><div class="mv" id="mobile-total-v">—</div></div>' +
+        '<a class="btn primary" href="#results" data-act="goto-results">Ver desglose</a></div>';
+    }
+    var banner = S.fromLink
+      ? '<div class="banner"><span>Precios aproximados, sólo como referencia — la cotización real únicamente la emite el taller.</span></div>'
+      : (S.mode === 'cliente'
+        ? '<div class="banner"><span>Vista previa: así verán tus clientes la calculadora (lleva un 10 % de aproximación). No se muestra ningún costo interno.</span><button type="button" data-act="mode" data-mode="taller">Volver al taller</button></div>' : '');
     return banner + '<div class="layout"><div class="col-form">' + UI.jobForm(rates) + '</div>' +
       '<aside class="col-result" aria-label="Resultado"><div id="results"></div></aside></div>' +
       '<div class="mobile-total" id="mobile-total"><div><div class="mt">Total</div><div class="mv" id="mobile-total-v">—</div></div>' +
@@ -194,7 +219,7 @@
       var mv = $('#mobile-total-v');
       if (mv) mv.textContent = UI.hasData() ? UI.money(v.q.total, v.money.code) : '—';
     }
-    $('#sheet').innerHTML = UI.hasData() ? UI.sheetHtml(UI.customerData(v.q, v.biz, v.money, v.mats)) : '';
+    $('#sheet').innerHTML = UI.hasData() ? UI.sheetHtml(UI.customerData(v.q, v.biz, v.money, v.mats, v.rates && v.rates.approx)) : '';
     updateLive();
   }
 
@@ -386,11 +411,11 @@
       case 'add-tier': S.cfg.modules.discounts.tiers.push({ min: 50, pct: 20 }); renderApp(); persist(); break;
       case 'rm-tier': S.cfg.modules.discounts.tiers.splice(i, 1); renderApp(); persist(); break;
       case 'copy-quote':
-        if (lastView) copyText(UI.quoteText(UI.customerData(lastView.q, lastView.biz, lastView.money, lastView.mats)), 'Cotización copiada');
+        if (lastView) copyText(UI.quoteText(UI.customerData(lastView.q, lastView.biz, lastView.money, lastView.mats, lastView.rates && lastView.rates.approx)), 'Cotización copiada');
         break;
       case 'pdf': { // genera el PDF de la cotización para descarga (sin diálogo de impresión)
         if (!lastView || !UI.hasData()) { toast('Captura los datos del trabajo primero'); break; }
-        var spec = UI.pdfSpec(UI.customerData(lastView.q, lastView.biz, lastView.money, lastView.mats));
+        var spec = UI.pdfSpec(UI.customerData(lastView.q, lastView.biz, lastView.money, lastView.mats, lastView.rates && lastView.rates.approx));
         var blob = new Blob([PDF.bytes(PDF.build(spec))], { type: 'application/pdf' });
         var a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
@@ -399,7 +424,11 @@
         setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
         break;
       }
-      case 'gen-link': S.link = buildLink(); renderApp(); toast('Enlace generado'); break;
+      case 'gen-quote-link':
+        if (!UI.hasData()) { toast('Captura los datos del trabajo primero'); break; }
+        S.link = buildQuoteLink(); S.linkKind = 'quote'; renderApp(); toast('Enlace de cotización generado');
+        break;
+      case 'gen-calc-link': S.link = buildCalcLink(); S.linkKind = 'calc'; renderApp(); toast('Enlace de calculadora generado'); break;
       case 'copy-link': copyText(S.link, 'Enlace copiado'); break;
       case 'export-cfg': {
         var blob = new Blob([JSON.stringify(S.cfg, null, 2)], { type: 'application/json' });

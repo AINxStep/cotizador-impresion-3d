@@ -493,6 +493,50 @@ test('el enlace de clientes lleva el IVA efectivo de la cotización', () => {
   assert.equal(Calc.linkRates(cfgSin, simpleJob({ taxOn: true })).money.taxOn, false);
 });
 
+test('la cotización cerrada reproduce exactamente el precio del taller', () => {
+  const cfg = simpleCfg();
+  const job = simpleJob({ taxOn: false, urgent: false, shipping: 50 });
+  const pub = Calc.publicJob(job);
+  const rates = Calc.linkRates(cfg, job);
+  close(Calc.quoteFromRates(rates, pub).total, Calc.computeQuote(cfg, job).total, 0.01, 'cotización cerrada ≠ taller');
+});
+
+test('publicJob sanea los datos que llegan en un enlace', () => {
+  const sucio = Calc.publicJob({
+    name: 'X', lines: [{ materialId: 'm1', g: -5 }, { g: 10 }, 'basura'],
+    plates: -3, runs: 0, ppp: 'a', ppl: -1, rel: 'otro', by: 'nada', urgent: 'sí', taxOn: 'no'
+  });
+  assert.equal(sucio.lines.length, 1, 'las líneas sin material se descartan');
+  assert.equal(sucio.lines[0].g, 0, 'gramos negativos quedan en 0');
+  assert.equal(sucio.plates, 1);
+  assert.equal(sucio.runs, 1);
+  assert.equal(sucio.ppp, 1);
+  assert.equal(sucio.ppl, 1);
+  assert.equal(sucio.rel, 'multi');
+  assert.equal(sucio.by, 'piece');
+  assert.equal(sucio.urgent, true);
+  const vacio = Calc.publicJob(null);
+  assert.equal(vacio.lines.length, 0);
+  assert.equal(vacio.taxOn, true);
+});
+
+test('el colchón de la calculadora de clientes sube los coeficientes y marca "aproximado"', () => {
+  const cfg = simpleCfg();
+  const job = simpleJob();
+  const base = Calc.linkRates(cfg, job);
+  const padded = Calc.padRates(base, 1.1);
+  assert.equal(padded.approx, true);
+  close(padded.mats[0].pg, base.mats[0].pg * 1.1);
+  close(padded.machines[0].ph, base.machines[0].ph * 1.1);
+  close(padded.base.job, base.base.job * 1.1);
+  // con la cola vacía el precio crece exactamente 10 %; las tarifas originales no se tocan
+  close(Calc.quoteFromRates(padded, job).total, Calc.quoteFromRates(base, job).total * 1.1, 0.01);
+  assert.equal(base.approx, undefined);
+  const sinColchon = Calc.padRates(base, 1);
+  assert.equal(sinColchon.approx, false);
+  close(Calc.quoteFromRates(sinColchon, job).total, Calc.quoteFromRates(base, job).total);
+});
+
 test('multiplicador 0 o vacío dispara advertencia en vez de un $0 silencioso', () => {
   const cfg = simpleCfg();
   cfg.pricing = { method: 'markup', markup: 0, marginPct: 40 };

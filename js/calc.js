@@ -319,6 +319,39 @@
     return r;
   }
 
+  /** Trabajo saneado a partir de un objeto cualquiera (el que viaja en un enlace de
+   *  cotización cerrada). Sólo cantidades públicas: nunca costos ni márgenes. */
+  function publicJob(j) {
+    j = j && typeof j === 'object' ? j : {};
+    var lines = Array.isArray(j.lines) ? j.lines.map(function (l) {
+      return { materialId: String(l && l.materialId || ''), g: pos(l && l.g) };
+    }).filter(function (l) { return l.materialId; }) : [];
+    return {
+      name: String(j.name || ''), client: String(j.client || ''),
+      printerId: String(j.printerId || ''), lines: lines,
+      hours: pos(j.hours), minutes: pos(j.minutes),
+      plates: Math.max(1, pos(j.plates) || 1), runs: Math.max(1, pos(j.runs) || 1),
+      rel: j.rel === 'split' ? 'split' : 'multi',
+      ppp: Math.max(1, pos(j.ppp) || 1), ppl: Math.max(1, pos(j.ppl) || 1),
+      by: j.by === 'plate' ? 'plate' : 'piece',
+      designH: pos(j.designH), postMin: pos(j.postMin), supplies: pos(j.supplies),
+      purgeG: pos(j.purgeG), extraMin: pos(j.extraMin),
+      urgent: !!j.urgent, shipping: pos(j.shipping), taxOn: j.taxOn !== false
+    };
+  }
+
+  /** Colchón de la calculadora de clientes: multiplica los coeficientes de precio por `f`
+   *  y marca las tarifas como aproximadas (el aviso lo muestra la vista del cliente). */
+  function padRates(rates, f) {
+    f = pos(f) || 1;
+    var r = JSON.parse(JSON.stringify(rates));
+    r.mats.forEach(function (m) { m.pg *= f; m.pgPurge *= f; });
+    r.machines.forEach(function (m) { m.ph *= f; });
+    ['job', 'plate', 'designH', 'postMin', 'supply'].forEach(function (k) { r.base[k] *= f; });
+    r.approx = f > 1;
+    return r;
+  }
+
   /** Precio a partir de tarifas de venta (modo Cliente). No expone costos. */
   function quoteFromRates(rates, job) {
     var b = rates.base;
@@ -361,6 +394,8 @@
     computeQuote: computeQuote,
     deriveRates: deriveRates,
     linkRates: linkRates,
+    publicJob: publicJob,
+    padRates: padRates,
     quoteFromRates: quoteFromRates,
     priceTail: priceTail,
     tailFromConfig: tailFromConfig,

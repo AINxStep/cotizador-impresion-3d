@@ -204,3 +204,27 @@ test('la primera visita abre en Configuración con aviso de bienvenida', () => {
   assert.ok(!UI.configView({ link: '', confirmReset: false }).includes('first-done'),
     'sin el aviso cuando ya existe configuración guardada');
 });
+
+test('la cotización cerrada es de sólo lectura y dice "Total de la cotización"', () => {
+  const rates = Calc.deriveRates(cfg);
+  UI.bind({ cfg, job: jobBase(), mode: 'cliente', tab: 'cotizar', fromLink: true, quoteLink: true, imp: null });
+  const resumen = UI.quoteSummary(rates);
+  assert.match(resumen, /Datos del trabajo/);
+  assert.match(resumen, /Contenido/);
+  assert.ok(!resumen.includes('data-path'), 'la cotización cerrada no lleva campos editables');
+  const res = UI.resultClient(Calc.quoteFromRates(rates, jobBase()), rates);
+  assert.match(res, /Total de la cotización/);
+  assert.ok(!/Precio estimado/.test(res));
+});
+
+test('la calculadora de clientes con colchón avisa que el precio es aproximado', () => {
+  const padded = Calc.padRates(Calc.deriveRates(cfg), 1.1);
+  UI.bind({ cfg, job: jobBase(), mode: 'cliente', tab: 'cotizar', fromLink: true, quoteLink: false, imp: null });
+  const res = UI.resultClient(Calc.quoteFromRates(padded, jobBase()), padded);
+  assert.match(res, /Precio aproximado/);
+  assert.match(res, /la emite el taller/);
+  assert.match(res, /Precio estimado/);
+  const exactas = Calc.deriveRates(cfg);
+  const res2 = UI.resultClient(Calc.quoteFromRates(exactas, jobBase()), exactas);
+  assert.ok(!/Precio aproximado/.test(res2), 'sin colchón no hay aviso de aproximación');
+});

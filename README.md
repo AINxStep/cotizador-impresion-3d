@@ -9,7 +9,7 @@ Calculadora en línea para cotizar proyectos de impresión 3D con **todos los co
 Es una página estática (HTML + CSS + JavaScript, sin servidor ni dependencias), pensada para quien se dedique a la impresión 3D, con dos modos:
 
 - **Taller:** cada persona configura sus propias impresoras, materiales y tarifas, y ve el desglose completo de costos, utilidad y margen real.
-- **Cliente:** muestra únicamente el precio y un resumen. Se puede compartir un enlace que lleva **sólo tus tarifas de venta**, nunca tus costos, márgenes ni utilidad.
+- **Cliente:** muestra únicamente el precio y un resumen. Se puede compartir un enlace de **cotización cerrada** (sólo lectura, con tu precio exacto) o de la **calculadora** (precios aproximados +10 %, con aviso de que la cotización real la emite el taller) — ambos llevan **sólo tus tarifas de venta**, nunca tus costos, márgenes ni utilidad.
 
 <p align="center">
   <img src="docs/captura-claro.png" alt="Tema claro" width="49%">
@@ -160,7 +160,12 @@ La pestaña *Metodología* de la propia página explica cada paso.
 
 El precio del modo Cliente sale de **tarifas de venta** derivadas de tu configuración (precio por gramo de cada material, por hora de cada impresora, por placa y por pedido). Como el modelo es lineal, esas tarifas reproducen exactamente el mismo precio que el modo Taller. Las pruebas automáticas comprueban ambas cosas: que los precios coinciden y que las tarifas no contienen costos, márgenes ni utilidad.
 
-El enlace se genera en *Configuración del taller → Compartir con clientes* y lleva las tarifas codificadas en la parte `#c=…` de la URL (no se envía a ningún servidor). Cualquiera con el enlace puede ver esas tarifas de venta.
+En *Configuración del taller → Compartir con clientes* hay dos enlaces, ambos codificados en la parte `#c=…` de la URL (no se envía a ningún servidor):
+
+- **Enlace de esta cotización** (recomendado): abre la cotización actual ya calculada y de sólo lectura — el cliente ve el precio exacto que definiste, el desglose público y la vigencia, sin poder modificar nada.
+- **Calculadora para clientes:** tu cliente captura sus propios datos (por ejemplo, de un `.gcode` que ya tenga) con tus tarifas **más un 10 % de aproximación**, y la página avisa siempre que el precio es sólo orientativo y que la cotización real la emite el taller. Sirve para dar una idea del costo, no para cerrar un precio.
+
+Cualquiera con cualquiera de los dos enlaces puede ver esas tarifas de venta.
 
 ## Usarlo
 
