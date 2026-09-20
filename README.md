@@ -36,7 +36,7 @@ Es una página estática (HTML + CSS + JavaScript, sin servidor ni dependencias)
 - Varias impresoras (depreciación, mantenimiento y consumo eléctrico por hora) y varios materiales (costo por gramo).
 - Módulos opcionales que se activan o desactivan: diseño y modelado, postprocesado e insumos, multicolor y purga, empaque, comisiones de plataforma o cobro, pedido mínimo, recargo por urgencia y descuento por volumen.
 - Margen sobre el precio **o** multiplicador sobre el costo, con la equivalencia entre ambos.
-- Moneda configurable (MXN por defecto), IVA opcional y redondeo del precio hacia arriba.
+- Moneda configurable (MXN por defecto), IVA opcional y redondeo del precio hacia arriba. El IVA se puede apagar **por cotización** — útil para trabajos entre particulares: al desmarcarlo no se suma ni se menciona en la cotización del cliente.
 - Cotización para el cliente: copiar como texto o imprimir / guardar como PDF (siempre sin costos internos).
 - Enlace para clientes, respaldo de la configuración en un archivo JSON y selector de tema claro, oscuro o automático.
 - Botón **Nueva cotización**: limpia los datos del trabajo (pesos, tiempos y archivo importado) para empezar de cero sin restos de la cotización anterior.

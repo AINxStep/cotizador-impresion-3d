@@ -156,6 +156,25 @@ test('IVA desactivado', () => {
   close(q.total, q.subtotal);
 });
 
+test('IVA por cotización: se apaga por trabajo sin tocar la configuración', () => {
+  const cfg = simpleCfg(); // el taller sí cobra IVA (taxOn: true)
+  const con = Calc.computeQuote(cfg, simpleJob());
+  const sin = Calc.computeQuote(cfg, simpleJob({ taxOn: false }));
+  assert.equal(sin.taxOn, false);
+  assert.equal(sin.tax, 0);
+  close(sin.total, sin.subtotal, 1e-9);
+  close(con.total, sin.subtotal * 1.16, 1e-9, 'mismo subtotal; sólo se quita el IVA');
+  // el modo Cliente replica el apagado
+  const rates = Calc.deriveRates(cfg);
+  const b = Calc.quoteFromRates(rates, simpleJob({ taxOn: false }));
+  assert.equal(b.tax, 0);
+  close(b.total, sin.total, 0.01);
+  // y el trabajo no puede prenderlo si el taller no lo maneja
+  const cfgSin = simpleCfg(); cfgSin.money.taxOn = false;
+  const c = Calc.quoteFromRates(Calc.deriveRates(cfgSin), simpleJob({ taxOn: true }));
+  assert.equal(c.tax, 0);
+});
+
 test('postproceso, diseño, empaque, purga y minutos extra', () => {
   const cfg = simpleCfg();
   cfg.modules.design = { on: true, rate: 200 };

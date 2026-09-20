@@ -86,7 +86,8 @@
         name: '', client: '', printerId: linkRates.machines[0].id,
         lines: [{ materialId: linkRates.mats[0].id, g: 0 }], hours: 0, minutes: 0, plates: 1,
         runs: 1, rel: 'multi', ppp: 1, ppl: 1, by: 'piece',
-        designH: 0, postMin: 0, supplies: 0, purgeG: 0, extraMin: 0, urgent: false, shipping: 0
+        designH: 0, postMin: 0, supplies: 0, purgeG: 0, extraMin: 0, urgent: false, shipping: 0,
+        taxOn: linkRates.money.taxOn
       };
       return;
     }
@@ -109,6 +110,8 @@
       S.job.hours = Math.floor(tmin / 60); S.job.minutes = tmin % 60;
       S.job.runs = 1;
     }
+    // trabajos guardados antes del IVA por cotización: heredan el valor de la configuración
+    if (savedJob && savedJob.taxOn == null) S.job.taxOn = S.cfg.money.taxOn !== false;
   }
 
   var saveTimer = null;

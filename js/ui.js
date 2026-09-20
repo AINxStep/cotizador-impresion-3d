@@ -249,8 +249,12 @@
     }
     if (S.mode === 'taller') extras.push(field({ path: 'job.shipping', label: 'Envío que se cobra', prefix: code, hint: 'Se suma sin margen. Déjalo en 0 si no aplica.' }));
     var urgent = mods.rush ? '<div class="field wide">' + check({ path: 'job.urgent', label: 'Entrega urgente' + (S.mode === 'taller' ? ' (+' + fmtN(S.cfg.modules.rush.pct, 1) + ' %)' : (rates.tail.rushPct ? ' (+' + fmtN(rates.tail.rushPct, 1) + ' %)' : '')) }) + '</div>' : '';
-    var more = (extras.length || urgent)
-      ? '<section class="card"><h2>Trabajo adicional</h2><div class="grid">' + extras.join('') + urgent + '</div></section>' : '';
+    // IVA por cotización: sólo en Taller y cuando el taller sí cobra IVA (el cliente no decide eso)
+    var iva = (S.mode === 'taller' && S.cfg.money.taxOn)
+      ? '<div class="field wide">' + check({ path: 'job.taxOn', label: 'Cobrar IVA (' + fmtN(S.cfg.money.taxRate, 1) + ' %) en esta cotización' }) +
+        '<small>Para trabajos entre particulares suele no cobrarse: al apagarlo no se suma ni se menciona en la cotización.</small></div>' : '';
+    var more = (extras.length || urgent || iva)
+      ? '<section class="card"><h2>Trabajo adicional</h2><div class="grid">' + extras.join('') + urgent + iva + '</div></section>' : '';
 
     var project = '<section class="card"><div class="card-head"><h2>Proyecto</h2>' +
       '<button type="button" class="btn small ' + (S.confirmNew ? 'danger' : 'ghost') + '" data-act="new-quote">' +
@@ -277,7 +281,7 @@
   function resultTaller(q, cfg) {
     var code = cfg.money.code;
     var m = function (x) { return money(x, code); };
-    var taxOn = cfg.money.taxOn;
+    var taxOn = q.taxOn !== undefined ? q.taxOn : cfg.money.taxOn; // efectivo: puede estar apagado por cotización
     var headLabel = taxOn ? 'Precio total con IVA' : 'Precio total';
     var subtotal = q.subtotal;
     var share = function (x) { return subtotal > 0 ? pct(x / subtotal) : '—'; };
@@ -362,7 +366,7 @@
     if (!hasData()) {
       return '<section class="card result"><div class="note empty">Captura el peso y el tiempo de impresión de tu pieza, o carga el archivo de tu laminador, para ver el precio estimado.</div></section>';
     }
-    var taxOn = rates.money.taxOn;
+    var taxOn = q.taxOn !== undefined ? q.taxOn : rates.money.taxOn;
     var lines = [];
     lines.push(['Piezas', fmtN(q.pieces)]);
     if (differ(q)) lines.push(['Placas de impresión', fmtN(q.plates)]);
@@ -410,9 +414,9 @@
     if (j.name) out.push('Proyecto: ' + j.name);
     if (j.client) out.push('Cliente: ' + j.client);
     out.push('Piezas: ' + fmtN(q.pieces) + (differ(q) ? ' (en ' + fmtN(q.plates) + ' ' + plural(q.plates, 'placa', 'placas') + ')' : '') + (d.materials ? ' · Material: ' + d.materials : ''));
-    out.push('Precio por ' + unitWord(q) + ': ' + m(q.unit) + (d.money.taxOn ? ' (sin IVA)' : ''));
+    out.push('Precio por ' + unitWord(q) + ': ' + m(q.unit) + (q.taxOn ? ' (sin IVA)' : ''));
     if (q.ship > 0) out.push('Envío: ' + m(q.ship));
-    if (d.money.taxOn) { out.push('Subtotal: ' + m(q.subtotal)); out.push('IVA (' + fmtN(d.money.taxRate, 1) + ' %): ' + m(q.tax)); }
+    if (q.taxOn) { out.push('Subtotal: ' + m(q.subtotal)); out.push('IVA (' + fmtN(d.money.taxRate, 1) + ' %): ' + m(q.tax)); }
     out.push('TOTAL: ' + m(q.total));
     if (d.biz.validityDays) out.push('Vigencia: ' + fmtN(d.biz.validityDays) + ' días');
     if (d.biz.notes) out.push(d.biz.notes);
@@ -435,7 +439,7 @@
       '<span style="display:block;color:#555;font-size:12px">' + esc(qtyText(q)) + ' · precio por ' + unitWord(q) + '</span></td><td>' + fmtN(q.units) + '</td><td>' + m(q.unit) + '</td><td>' + m(importe) + '</td></tr>' +
       (q.ship > 0 ? '<tr><td>Envío</td><td>1</td><td>' + m(q.ship) + '</td><td>' + m(q.ship) + '</td></tr>' : '') +
       '</tbody><tfoot>' +
-      (d.money.taxOn ? '<tr><td colspan="3" style="text-align:right">Subtotal</td><td>' + m(q.subtotal) + '</td></tr><tr><td colspan="3" style="text-align:right">IVA (' + fmtN(d.money.taxRate, 1) + ' %)</td><td>' + m(q.tax) + '</td></tr>' : '') +
+      (q.taxOn ? '<tr><td colspan="3" style="text-align:right">Subtotal</td><td>' + m(q.subtotal) + '</td></tr><tr><td colspan="3" style="text-align:right">IVA (' + fmtN(d.money.taxRate, 1) + ' %)</td><td>' + m(q.tax) + '</td></tr>' : '') +
       '<tr class="grand"><td colspan="3" style="text-align:right">Total</td><td>' + m(q.total) + '</td></tr></tfoot></table>' +
       '<div class="foot">' + esc(foot.join('\n')) + '</div></div>';
   }
@@ -457,7 +461,7 @@
       field({ path: 'cfg.money.taxRate', label: 'IVA / impuesto', suffix: '%', hint: 'En México el IVA general es 16 %.' }) +
       field({ path: 'cfg.money.rounding', type: 'select-num', label: 'Redondear precio hacia arriba a', options: [[0, 'Sin redondeo'], [1, '1'], [5, '5'], [10, '10'], [50, '50']] }) +
       field({ path: 'cfg.biz.validityDays', label: 'Vigencia de la cotización', suffix: 'días' }) +
-      '<div class="field wide">' + check({ path: 'cfg.money.taxOn', label: 'Sumar y mostrar el IVA en la cotización', rerender: false }) + '</div></div></section>';
+      '<div class="field wide">' + check({ path: 'cfg.money.taxOn', label: 'Cobrar IVA por defecto (se puede apagar en cada cotización)', rerender: false }) + '</div></div></section>';
 
     var printers = '<section class="card"><h2>Impresoras</h2><p class="lead">El costo por hora de cada máquina sale de su precio, vida útil, mantenimiento y consumo eléctrico.</p>' +
       cfg.printers.map(function (p, i) {

@@ -96,6 +96,7 @@
       supplies: 0,
       purgeG: 0,
       extraMin: 0,
+      taxOn: cfg && cfg.money ? cfg.money.taxOn !== false : true, // IVA por cotización; el taller puede apagarlo por trabajo
       urgent: false,
       shipping: 0
     };

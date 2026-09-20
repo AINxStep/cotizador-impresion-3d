@@ -115,6 +115,28 @@ test('el encabezado incluye el selector de tema (auto / claro / oscuro)', () => 
   assert.match(UI.header({ biz: cfg.biz }), /data-act="theme"/, 'también aparece en el enlace de clientes');
 });
 
+test('la cotización puede apagar el IVA por trabajo (sólo en modo Taller)', () => {
+  bindJob({ taxOn: true });
+  const h = UI.jobForm(null);
+  assert.match(h, /data-path="job\.taxOn"/);
+  assert.match(h, /Cobrar IVA/);
+  bindJob({ taxOn: true }, 'cliente');
+  assert.ok(!UI.jobForm(Calc.deriveRates(cfg)).includes('data-path="job.taxOn"'), 'el cliente no decide el IVA');
+});
+
+test('con IVA apagado la cotización del cliente no menciona el impuesto', () => {
+  const rates = Calc.deriveRates(cfg);
+  const job = bindJob({ taxOn: false }, 'cliente');
+  const q = Calc.quoteFromRates(rates, job);
+  const html = UI.resultClient(q, rates);
+  assert.ok(!/IVA/.test(html), 'sin líneas de IVA en el resultado');
+  assert.ok(!/con IVA/.test(html), 'ni "con IVA" en el encabezado');
+  const d = UI.customerData(q, cfg.biz, cfg.money, cfg.materials);
+  assert.ok(!/IVA/.test(UI.quoteText(d)), 'ni en el texto copiado');
+  assert.ok(!/IVA/.test(UI.sheetHtml(d)), 'ni en la hoja imprimible');
+  assert.equal(q.total, q.subtotal, 'el total no incluye IVA');
+});
+
 test('el archivo con varias placas pide indicar la relación con las piezas', () => {
   const res = { source: 'Bambu Studio', warnings: [], plates: [
     { index: 1, seconds: 3600, grams: 20, filaments: [] }, { index: 2, seconds: 3600, grams: 20, filaments: [] }] };

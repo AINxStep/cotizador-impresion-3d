@@ -221,7 +221,9 @@
     if (pr.method === 'markup') N = cost * Math.max(0, num(pr.markup, 1));
     else N = cost / (1 - clamp(pos(pr.marginPct), 0, 95) / 100);
 
-    var tail = priceTail(tailFromConfig(cfg), N, s.units, !!job.urgent && on('rush'), job.shipping);
+    // IVA por cotización: se cobra si el taller lo maneja Y el trabajo no lo apaga
+    var taxOn = !!(cfg.money && cfg.money.taxOn) && job.taxOn !== false;
+    var tail = priceTail(Object.assign(tailFromConfig(cfg), { taxOn: taxOn }), N, s.units, !!job.urgent && on('rush'), job.shipping);
 
     var revenue = tail.service + tail.roundAdj;            // ingreso por el servicio (sin envío ni IVA)
     var profit = revenue - tail.fees - cost;
@@ -245,7 +247,7 @@
       rush: tail.rush, discountPct: tail.discountPct, discount: tail.discount,
       fees: tail.fees, minAdj: tail.minAdj, minApplied: tail.minApplied,
       service: tail.service, ship: tail.ship, roundAdj: tail.roundAdj,
-      subtotal: tail.subtotal, tax: tail.tax, total: tail.total,
+      subtotal: tail.subtotal, tax: tail.tax, total: tail.total, taxOn: taxOn,
       unit: up.unit, unitPiece: up.unitPiece, unitPlate: up.unitPlate,
       profit: profit, marginEff: marginEff, profitPerHour: H > 0 ? profit / H : 0,
       notes: notes
@@ -330,14 +332,15 @@
     if (rates.mods.design) N += pos(job.designH) * b.designH;
     if (rates.mods.post) N += pos(job.postMin) * pieces * b.postMin + pos(job.supplies) * pieces * b.supply;
 
-    var tail = priceTail(rates.tail, N, s.units, !!job.urgent && rates.mods.rush, job.shipping);
+    var taxOn = !!(rates.tail && rates.tail.taxOn) && job.taxOn !== false;
+    var tail = priceTail(Object.assign({}, rates.tail, { taxOn: taxOn }), N, s.units, !!job.urgent && rates.mods.rush, job.shipping);
     var revenue = tail.service + tail.roundAdj;
     var up = unitPrices(revenue, s);
     return {
       plates: plates, platesRun: s.platesRun, runs: s.runs, pieces: pieces, byPlate: s.byPlate, units: s.units, hours: H, gramsNet: gramsNet, N: N,
       rush: tail.rush, discountPct: tail.discountPct, discount: tail.discount,
       minApplied: tail.minApplied, service: tail.service, ship: tail.ship, roundAdj: tail.roundAdj,
-      subtotal: tail.subtotal, tax: tail.tax, total: tail.total,
+      subtotal: tail.subtotal, tax: tail.tax, total: tail.total, taxOn: taxOn,
       unit: up.unit, unitPiece: up.unitPiece, unitPlate: up.unitPlate,
       notes: shapeNotes(s)
     };
