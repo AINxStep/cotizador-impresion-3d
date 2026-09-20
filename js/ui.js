@@ -222,8 +222,9 @@
       '<div class="label" style="margin-bottom:8px">Material total por corrida' + helpIcon('Gramos de cada material que consume una corrida completa (todas las placas del proyecto una vez). Agrega una línea por material o color.') + '</div>' + lines +
       '<button type="button" class="btn small ghost" data-act="add-line">+ Agregar otro material</button>' +
       '<div class="grid" style="margin-top:16px">' +
-      field({ path: 'job.hours', label: 'Tiempo por corrida · horas', suffix: 'h', hint: 'Horas que tarda una corrida completa (todas las placas del proyecto una vez), según el laminador.' }) +
-      field({ path: 'job.minutes', label: 'Tiempo por corrida · minutos', suffix: 'min', hint: 'Minutos que tarda una corrida completa; junto con las horas forma el tiempo total por corrida.' }) +
+      '<div class="field"><label for="' + idFor('job.hours') + '">Tiempo por corrida' + helpIcon('Duración de una corrida completa — todas las placas del proyecto una vez — en horas y minutos, según el laminador.') + '</label>' +
+      '<div class="dur"><div class="inp"><input id="' + idFor('job.hours') + '" data-path="job.hours" data-type="number" type="number" inputmode="decimal" step="any" min="0" value="' + esc(job.hours) + '" aria-label="Horas por corrida"><span class="suffix">h</span></div>' +
+      '<div class="inp"><input id="' + idFor('job.minutes') + '" data-path="job.minutes" data-type="number" type="number" inputmode="decimal" step="any" min="0" value="' + esc(job.minutes) + '" aria-label="Minutos por corrida"><span class="suffix">min</span></div></div></div>' +
       field({ path: 'job.plates', label: 'Placas por corrida', step: '1', min: 1, hint: 'Cuántas placas tiene el proyecto en cada corrida. Al cargar un archivo se llena con las que trae.' }) +
       field({ path: 'job.runs', label: 'Corridas del proyecto', step: '1', min: 1, hint: 'Cuántas veces se imprime el proyecto completo para cubrir el pedido. Ej.: un archivo de 2 placas × 3 corridas = 6 placas.' }) +
       '</div></section>';
