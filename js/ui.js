@@ -369,8 +369,13 @@
       '<details open><summary>Desglose detallado</summary>' + tbl + '</details>' +
       '<div class="btn-row"><button type="button" class="btn primary" data-act="copy-quote">Copiar cotización</button>' +
       '<button type="button" class="btn" data-act="pdf">Descargar PDF</button>' +
+      '<button type="button" class="btn" data-act="gen-quote-link">Enlace de esta cotización</button>' +
       '<button type="button" class="btn" data-act="mode" data-mode="cliente">Ver como cliente</button></div>' +
-      '<p class="sub" style="margin-top:10px">La cotización que copias o descargas nunca incluye tus costos internos.</p></section>';
+      (S.linkKind === 'quote' && S.link
+        ? '<div class="linkbox"><input readonly id="link-out" value="' + esc(S.link) + '" aria-label="Enlace de esta cotización"><button type="button" class="btn primary" data-act="copy-link">Copiar</button></div>' +
+          '<small style="display:block;margin-top:6px;color:var(--muted)">Abre esta cotización de sólo lectura, con el precio exacto que definiste. Si cambias los datos, vuelve a generarlo.</small>'
+        : '') +
+      '<p class="sub" style="margin-top:10px">La cotización que copias, descargas o enlazas nunca incluye tus costos internos.</p></section>';
   }
 
   function resultClient(q, rates) {
@@ -613,17 +618,15 @@
       modCard('rush', 'Recargo por urgencia', 'Casilla “entrega urgente” en la cotización.', field({ path: 'cfg.modules.rush.pct', label: 'Recargo', suffix: '%', hint: 'Porcentaje extra sobre el precio cuando se marca «entrega urgente».' })) +
       modCard('discounts', 'Descuento por volumen', 'Reduce el precio según la cantidad del pedido, en piezas o en placas (según por cuál unidad cotices).', tiers) + '</section>';
 
-    var linkLabel = extra.linkKind === 'quote' ? 'Enlace de esta cotización' : 'Enlace de la calculadora para clientes';
-    var link = extra.link
-      ? '<div class="linkbox"><input readonly id="link-out" value="' + esc(extra.link) + '" aria-label="' + linkLabel + '"><button type="button" class="btn primary" data-act="copy-link">Copiar</button></div>' +
-        '<small style="display:block;margin-top:6px;color:var(--muted)">' + linkLabel + ' · ' + extra.link.length + ' caracteres.' + (location.protocol === 'file:' ? ' Estás usando el archivo local: para que tus clientes abran el enlace, publica el sitio (por ejemplo con GitHub Pages) y genera el enlace desde esa dirección.' : '') + '</small>'
+    var link = (extra.link && extra.linkKind === 'calc')
+      ? '<div class="linkbox"><input readonly id="link-out" value="' + esc(extra.link) + '" aria-label="Enlace de la calculadora para clientes"><button type="button" class="btn primary" data-act="copy-link">Copiar</button></div>' +
+        '<small style="display:block;margin-top:6px;color:var(--muted)">' + extra.link.length + ' caracteres.' + (location.protocol === 'file:' ? ' Estás usando el archivo local: para que tus clientes abran el enlace, publica el sitio (por ejemplo con GitHub Pages) y genera el enlace desde esa dirección.' : '') + '</small>'
       : '';
     var share = '<section class="card"><h2>Compartir con clientes</h2>' +
-      '<p class="lead"><b>Enlace de esta cotización</b> (recomendado): abre la cotización actual ya calculada y de sólo lectura — tu cliente ve el precio exacto que definiste, sin poder modificarlo.<br>' +
-      '<b>Calculadora para clientes:</b> tu cliente captura sus propios datos con tus tarifas, más un 10 % de aproximación, y con el aviso de que la cotización real la emite el taller.<br>' +
-      'Ambos enlaces llevan <b>sólo tus tarifas de venta</b>; nunca tus costos, márgenes ni utilidad. Cualquiera con el enlace puede ver esas tarifas.</p>' +
-      '<div class="btn-row" style="margin-top:0"><button type="button" class="btn primary" data-act="gen-quote-link">Enlace de esta cotización</button>' +
-      '<button type="button" class="btn" data-act="gen-calc-link">Calculadora para clientes</button>' +
+      '<p class="lead"><b>Calculadora para clientes:</b> tu cliente captura sus propios datos (por ejemplo, de un archivo de su laminador) con tus tarifas, más un 10 % de aproximación y sin descuentos ni trabajo adicional — con el aviso de que la cotización real la emite el taller. ' +
+      'Para compartir una cotización puntual usa <b>«Enlace de esta cotización»</b>, junto al resultado en la pestaña Cotizar.<br>' +
+      'Los enlaces llevan <b>sólo tus tarifas de venta</b>; nunca tus costos, márgenes ni utilidad. Cualquiera con el enlace puede ver esas tarifas.</p>' +
+      '<div class="btn-row" style="margin-top:0"><button type="button" class="btn" data-act="gen-calc-link">Generar calculadora para clientes</button>' +
       '<button type="button" class="btn" data-act="mode" data-mode="cliente">Vista previa como cliente</button></div>' + link + '</section>';
 
     var backup = '<section class="card"><h2>Respaldo y restablecer</h2><p class="lead">Tu configuración se guarda sólo en este navegador. Exporta un respaldo para llevarla a otro equipo.</p>' +

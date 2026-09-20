@@ -160,10 +160,10 @@ La pestaña *Metodología* de la propia página explica cada paso.
 
 El precio del modo Cliente sale de **tarifas de venta** derivadas de tu configuración (precio por gramo de cada material, por hora de cada impresora, por placa y por pedido). Como el modelo es lineal, esas tarifas reproducen exactamente el mismo precio que el modo Taller. Las pruebas automáticas comprueban ambas cosas: que los precios coinciden y que las tarifas no contienen costos, márgenes ni utilidad.
 
-En *Configuración del taller → Compartir con clientes* hay dos enlaces, ambos codificados en la parte `#c=…` de la URL (no se envía a ningún servidor):
+Hay dos enlaces para compartir, ambos codificados en la parte `#c=…` de la URL (no se envía a ningún servidor):
 
-- **Enlace de esta cotización** (recomendado): abre la cotización actual ya calculada y de sólo lectura — el cliente ve el precio exacto que definiste, el desglose público y la vigencia, sin poder modificar nada.
-- **Calculadora para clientes:** tu cliente captura sus propios datos (por ejemplo, de un `.gcode` que ya tenga) con tus tarifas **más un 10 % de aproximación**. El estimado cubre sólo la maquila —material y tiempo de impresión—: no ofrece ni incluye trabajo adicional (diseño, postprocesado, empaque, envío, urgencias) ni descuentos por volumen (se anuncian sólo como información). La página avisa siempre que el precio es orientativo y que la cotización real la emite el taller. Sirve para dar una idea del costo, no para cerrar un precio.
+- **Enlace de esta cotización** (recomendado): se genera junto al resultado en *Cotizar* y abre la cotización actual ya calculada y de sólo lectura — el cliente ve el precio exacto que definiste, el desglose público y la vigencia, sin poder modificar nada.
+- **Calculadora para clientes** (en *Configuración del taller → Compartir con clientes*): tu cliente captura sus propios datos (por ejemplo, de un `.gcode` que ya tenga) con tus tarifas **más un 10 % de aproximación**. El estimado cubre sólo la maquila —material y tiempo de impresión—: no ofrece ni incluye trabajo adicional (diseño, postprocesado, empaque, envío, urgencias) ni descuentos por volumen (se anuncian sólo como información). La página avisa siempre que el precio es orientativo y que la cotización real la emite el taller. Sirve para dar una idea del costo, no para cerrar un precio.
 
 Cualquiera con cualquiera de los dos enlaces puede ver esas tarifas de venta.
 

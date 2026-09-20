@@ -397,7 +397,7 @@
         if (!S.confirmNew) { S.confirmNew = true; renderApp(); break; }
         S.job = Defaults.makeJob(S.cfg);
         S.job.lines[0].g = 0; S.job.hours = 0; S.job.minutes = 0; // cotización en blanco, sin los datos de ejemplo
-        S.imp = null; S.confirmNew = false;
+        S.imp = null; S.link = ''; S.linkKind = ''; S.confirmNew = false; // el enlace generado ya no corresponde
         renderApp(); persist();
         toast('Cotización en blanco — captura los datos del trabajo');
         break;
@@ -440,7 +440,7 @@
       }
       case 'reset':
         if (!S.confirmReset) { S.confirmReset = true; renderApp(); break; }
-        S.cfg = Defaults.makeConfig(); S.job = Defaults.makeJob(S.cfg); S.imp = null; S.link = ''; S.confirmReset = false;
+        S.cfg = Defaults.makeConfig(); S.job = Defaults.makeJob(S.cfg); S.imp = null; S.link = ''; S.linkKind = ''; S.confirmReset = false;
         saveJSON(LS_CFG, S.cfg); saveJSON(LS_JOB, S.job); renderApp(); toast('Valores de ejemplo restablecidos');
         break;
       case 'goto-results': {
@@ -472,7 +472,7 @@
         S.cfg = deepMerge(Defaults.makeConfig(), data);
         ['printers', 'materials'].forEach(function (k) { S.cfg[k] = data[k]; });
         if (data.modules.discounts && Array.isArray(data.modules.discounts.tiers)) S.cfg.modules.discounts.tiers = data.modules.discounts.tiers;
-        saveJSON(LS_CFG, S.cfg); S.link = ''; renderApp(); toast('Configuración importada');
+        saveJSON(LS_CFG, S.cfg); S.link = ''; S.linkKind = ''; renderApp(); toast('Configuración importada');
       }).catch(function () { toast('El archivo no es una configuración válida.'); });
     }
   }

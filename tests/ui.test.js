@@ -250,3 +250,17 @@ test('la calculadora de clientes no ofrece trabajo adicional, sólo aclara el al
   const ht = UI.jobForm(null);
   assert.match(ht, /data-path="job.designH"/);
 });
+
+test('el enlace de cotización se genera desde Cotizar; Configuración sólo tiene la calculadora', () => {
+  bindJob({ name: 'X' });
+  const res = UI.resultTaller(Calc.computeQuote(cfg, jobBase()), cfg);
+  assert.match(res, /data-act="gen-quote-link"/);
+  const cfgView = UI.configView({ link: '', linkKind: '', confirmReset: false });
+  assert.match(cfgView, /data-act="gen-calc-link"/);
+  assert.ok(!cfgView.includes('gen-quote-link'), 'la cotización cerrada no se genera desde Configuración');
+  // con un enlace de cotización generado, la caja aparece en el resultado, no en Configuración
+  UI.bind({ cfg, job: jobBase(), mode: 'taller', tab: 'cotizar', fromLink: false, imp: null, link: 'https://x.test/#c=abc', linkKind: 'quote' });
+  assert.match(UI.resultTaller(Calc.computeQuote(cfg, jobBase()), cfg), /id="link-out"/);
+  assert.ok(!UI.configView({ link: 'https://x.test/#c=abc', linkKind: 'quote', confirmReset: false }).includes('link-out'),
+    'un enlace de cotización no se muestra en la tarjeta de Configuración');
+});
