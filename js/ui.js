@@ -465,8 +465,8 @@
       '</div><div class="grid" style="margin-top:14px">' +
       field({ path: 'cfg.money.code', type: 'select', label: 'Moneda', options: Defaults.CURRENCIES, rerender: true, hint: 'Moneda en que se expresan todos los precios.' }) +
       field({ path: 'cfg.money.taxRate', label: 'IVA / impuesto', suffix: '%', hint: 'Tasa del impuesto sobre las ventas. En México el IVA general es 16 %.' }) +
-      field({ path: 'cfg.money.rounding', type: 'select-num', label: 'Redondear precio hacia arriba a', options: [[0, 'Sin redondeo'], [1, '1'], [5, '5'], [10, '10'], [50, '50']], hint: 'Redondea el precio hacia arriba al múltiplo elegido, antes del IVA.' }) +
-      field({ path: 'cfg.biz.validityDays', label: 'Vigencia de la cotización', suffix: 'días', hint: 'Días de validez que se muestran al pie de la cotización.' }) +
+      field({ path: 'cfg.money.rounding', type: 'select-num', label: 'Redondeo de precio', options: [[0, 'Sin redondeo'], [1, '1'], [5, '5'], [10, '10'], [50, '50']], hint: 'Redondea el precio hacia arriba al múltiplo elegido, antes del IVA.' }) +
+      field({ path: 'cfg.biz.validityDays', label: 'Vigencia', suffix: 'días', hint: 'Días de validez de la cotización; se muestran al pie.' }) +
       '<div class="field wide">' + check({ path: 'cfg.money.taxOn', label: 'Cobrar IVA por defecto (se puede apagar en cada cotización)', rerender: false, hint: 'Valor inicial del IVA en cada cotización nueva; en cada trabajo se puede apagar.' }) + '</div></div></section>';
 
     var printers = '<section class="card"><h2>Impresoras</h2><p class="lead">El costo por hora de cada máquina sale de su precio, vida útil, mantenimiento y consumo eléctrico.</p>' +
