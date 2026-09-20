@@ -83,9 +83,10 @@
       client: '',
       printerId: cfg && cfg.printers && cfg.printers[0] ? cfg.printers[0].id : '',
       lines: [{ materialId: cfg && cfg.materials && cfg.materials[0] ? cfg.materials[0].id : '', g: 35 }],
-      hours: 2,
+      hours: 2,   // gramos y tiempo son TOTALES por corrida (todas las placas del proyecto)
       minutes: 30,
-      plates: 1,
+      plates: 1,  // placas por corrida
+      runs: 1,    // corridas: veces que se imprime el proyecto completo para cubrir el pedido
       rel: 'multi', // 'multi': varias piezas por placa · 'split': una pieza se reparte en varias placas
       ppp: 1,       // piezas por placa (rel = 'multi')
       ppl: 1,       // placas por pieza (rel = 'split'); admite decimales

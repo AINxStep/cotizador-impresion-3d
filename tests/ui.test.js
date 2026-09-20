@@ -26,6 +26,9 @@ test('qtyLive explica la relación elegida y la unidad de cotización', () => {
   assert.match(split, /3 placas ÷ 3 placas por pieza = 1 pieza del pedido/);
   assert.match(split, /Se cotiza por placa/);
   assert.match(split, /cuenta 3 placas/);
+  const corridas = UI.qtyLive(Calc.jobShape(null, { plates: 2, runs: 3, rel: 'multi', ppp: 10, by: 'piece' }));
+  assert.match(corridas, /2 placas por corrida × 3 corridas = 6 placas/);
+  assert.match(corridas, /6 placas × 10 piezas por placa = 60 piezas del pedido/);
 });
 
 test('el formulario ofrece la relación, las piezas por placa o placas por pieza, y "cotizar por"', () => {
@@ -48,6 +51,16 @@ test('la pestaña de cotización ofrece empezar una cotización nueva', () => {
   const h = UI.jobForm(null);
   assert.match(h, /data-act="new-quote"/);
   assert.match(h, /Nueva cotización/);
+});
+
+test('la tarjeta de impresión pide totales por corrida y las corridas del proyecto', () => {
+  bindJob({});
+  const h = UI.jobForm(null);
+  assert.match(h, /data-path="job\.runs"/, 'pide las corridas');
+  assert.match(h, /data-path="job\.plates"/, 'pide las placas por corrida');
+  assert.match(h, /g por corrida/, 'los gramos son por corrida');
+  assert.match(h, /Tiempo por corrida/, 'el tiempo es por corrida');
+  assert.match(h, /Corridas del proyecto/);
 });
 
 test('resultado del taller: piezas, placas y precio por la unidad elegida', () => {

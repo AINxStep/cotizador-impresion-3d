@@ -70,16 +70,35 @@ test('multiplicador (markup) en lugar de margen', () => {
   close(q.marginEff, 1 - 1 / 2.5);
 });
 
-test('cantidad de placas multiplica material, tiempo y manejo de placa', () => {
+test('las corridas multiplican material y tiempo; el manejo va por placa total', () => {
   const cfg = simpleCfg();
   cfg.labor.plateMin = 6;
   const one = Calc.computeQuote(cfg, simpleJob());
-  const four = Calc.computeQuote(cfg, simpleJob({ plates: 4, ppp: 2 }));
+  // 1 placa por corrida × 4 corridas = 4 placas físicas
+  const four = Calc.computeQuote(cfg, simpleJob({ plates: 1, runs: 4, ppp: 2 }));
   close(four.costs.material, one.costs.material * 4);
   close(four.hours, one.hours * 4);
+  assert.equal(four.plates, 4);
   assert.equal(four.pieces, 8);
   // mano de obra: preparación fija (30 min) + 6 min por placa
   close(four.costs.labor, (30 + 6 * 4) / 60 * 120);
+});
+
+test('una corrida con placas distintas usa los totales del proyecto (sin multiplicar)', () => {
+  // clickers: placa 1 = tapas, placa 2 = bases — el laminador reporta 60.5 g y ~187 min en total
+  const cfg = simpleCfg();
+  cfg.labor.plateMin = 6;
+  const q = Calc.computeQuote(cfg, simpleJob({ lines: [{ materialId: 'm1', g: 60.5 }], hours: 3, minutes: 7, plates: 2, runs: 1 }));
+  close(q.gramsNet, 60.5, 1e-9, 'los gramos ya son el total de la corrida');
+  close(q.hours, (3 * 60 + 7) / 60, 1e-9);
+  assert.equal(q.plates, 2);
+  close(q.costs.labor, (30 + 6 * 2) / 60 * 120, 1e-9, 'el manejo sí va por placa');
+  // repetir el proyecto 3 veces: ×3 material y tiempo, 6 placas físicas
+  const tres = Calc.computeQuote(cfg, simpleJob({ lines: [{ materialId: 'm1', g: 60.5 }], hours: 3, minutes: 7, plates: 2, runs: 3 }));
+  close(tres.costs.material, q.costs.material * 3, 1e-9);
+  close(tres.hours, q.hours * 3, 1e-9);
+  assert.equal(tres.plates, 6);
+  close(tres.costs.labor, (30 + 6 * 6) / 60 * 120, 1e-9);
 });
 
 test('comisión con gross-up: tras pagarla queda el precio base', () => {
@@ -143,7 +162,7 @@ test('postproceso, diseño, empaque, purga y minutos extra', () => {
   cfg.modules.post = { on: true, rate: 120 };
   cfg.modules.packaging = { on: true, perOrder: 15 };
   cfg.modules.multicolor = { on: true };
-  const job = simpleJob({ designH: 1.5, postMin: 30, supplies: 3, plates: 2, ppp: 4, purgeG: 10, extraMin: 6 });
+  const job = simpleJob({ designH: 1.5, postMin: 30, supplies: 3, plates: 1, runs: 2, ppp: 4, purgeG: 10, extraMin: 6 });
   const q = Calc.computeQuote(cfg, job);
   close(q.costs.design, 300);
   close(q.costs.postLabor, 30 * 8 / 60 * 120); // 8 piezas
@@ -198,7 +217,7 @@ test('el precio del modo Cliente coincide con el del modo Taller (config por def
         { materialId: cfg.materials[Math.floor(rand() * cfg.materials.length)].id, g: Math.round(rand() * 60) }
       ],
       hours: Math.floor(rand() * 20), minutes: Math.floor(rand() * 60),
-      plates: 1 + Math.floor(rand() * 6), ppp: 1 + Math.floor(rand() * 8),
+      plates: 1 + Math.floor(rand() * 6), runs: 1 + Math.floor(rand() * 4), ppp: 1 + Math.floor(rand() * 8),
       designH: rand() < 0.3 ? rand() * 3 : 0, postMin: rand() < 0.5 ? Math.round(rand() * 45) : 0,
       supplies: rand() < 0.5 ? Math.round(rand() * 20) : 0,
       purgeG: rand() < 0.4 ? Math.round(rand() * 30) : 0,
@@ -221,7 +240,7 @@ test('la consistencia también se cumple con multiplicador, sin módulos y con I
   for (const k of ['design', 'post', 'packaging', 'fees', 'minimum', 'rush', 'discounts']) cfg.modules[k].on = false;
   cfg.modules.multicolor.on = true;
   const rates = Calc.deriveRates(cfg);
-  const job = { printerId: cfg.printers[0].id, lines: [{ materialId: cfg.materials[1].id, g: 123 }], hours: 7, minutes: 20, plates: 3, ppp: 2, purgeG: 8, extraMin: 11, urgent: true };
+  const job = { printerId: cfg.printers[0].id, lines: [{ materialId: cfg.materials[1].id, g: 123 }], hours: 7, minutes: 20, plates: 3, runs: 2, ppp: 2, purgeG: 8, extraMin: 11, urgent: true };
   close(Calc.computeQuote(cfg, job).total, Calc.quoteFromRates(rates, job).total, 0.01);
 });
 
@@ -285,8 +304,8 @@ test('las tarifas públicas se derivan sólo de módulos activos', () => {
 // Piezas y placas: el archivo trae las placas; la relación con las piezas la indica el usuario
 // ------------------------------------------------------------------
 test('varias piezas por placa: piezas = placas × piezas por placa', () => {
-  // 3 placas de 5 h → costo 300, precio base 500 (ver caso base)
-  const job = simpleJob({ plates: 3, rel: 'multi', ppp: 12 });
+  // 3 corridas de 1 placa de 5 h → costo 300, precio base 500 (ver caso base)
+  const job = simpleJob({ plates: 1, runs: 3, rel: 'multi', ppp: 12 });
   const q = Calc.computeQuote(simpleCfg(), job);
   close(q.cost, 300);
   close(q.service, 500);
@@ -300,11 +319,12 @@ test('varias piezas por placa: piezas = placas × piezas por placa', () => {
 });
 
 test('una pieza repartida en varias placas: piezas = placas ÷ placas por pieza', () => {
-  const q = Calc.computeQuote(simpleCfg(), simpleJob({ plates: 3, rel: 'split', ppl: 3 }));
+  // corrida de 3 placas que forman una pieza, 1 corrida; material/tiempo son el total de la corrida
+  const q = Calc.computeQuote(simpleCfg(), simpleJob({ lines: [{ materialId: 'm1', g: 300 }], hours: 15, plates: 3, runs: 1, rel: 'split', ppl: 3 }));
   assert.equal(q.pieces, 1);
   close(q.unitPiece, 500);
   close(q.unitPlate, 500 / 3);
-  const q2 = Calc.computeQuote(simpleCfg(), simpleJob({ plates: 6, rel: 'split', ppl: 3 }));
+  const q2 = Calc.computeQuote(simpleCfg(), simpleJob({ lines: [{ materialId: 'm1', g: 300 }], hours: 15, plates: 3, runs: 2, rel: 'split', ppl: 3 }));
   assert.equal(q2.pieces, 2);
   close(q2.unitPiece, q2.service / 2);
 });
@@ -388,6 +408,10 @@ test('valores desconocidos de relación o de "cotizar por" usan los valores por 
   assert.equal(raro.units, 4);
   const sinDatos = Calc.jobShape(null, {});
   assert.equal(sinDatos.pieces, 0);
+  const corridas = Calc.jobShape(null, { plates: 2, runs: 3, rel: 'multi', ppp: 5 });
+  assert.equal(corridas.plates, 6, 'placas totales = placas por corrida × corridas');
+  assert.equal(corridas.pieces, 30);
+  assert.equal(corridas.runs, 3);
 });
 
 test('modo Cliente = modo Taller con cualquier relación, "cotizar por" y descuentos', () => {
@@ -401,7 +425,7 @@ test('modo Cliente = modo Taller con cualquier relación, "cotizar por" y descue
       printerId: cfg.printers[Math.floor(rand() * cfg.printers.length)].id,
       lines: [{ materialId: cfg.materials[Math.floor(rand() * cfg.materials.length)].id, g: Math.round(rand() * 300) }],
       hours: Math.floor(rand() * 12), minutes: Math.floor(rand() * 60),
-      plates: 1 + Math.floor(rand() * 30),
+      plates: 1 + Math.floor(rand() * 30), runs: 1 + Math.floor(rand() * 3),
       rel: split ? 'split' : 'multi',
       ppp: 1 + Math.floor(rand() * 12),
       ppl: 1 + Math.round(rand() * 60) / 10,

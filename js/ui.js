@@ -56,17 +56,21 @@
   function plural(n, one, many) { return Math.abs(n - 1) < 1e-9 ? one : many; }
   function unitWord(q) { return q.byPlate ? 'placa' : 'pieza'; }
   function differ(q) { return Math.abs(q.pieces - q.plates) > 1e-9; }
-  /** "12 piezas en 3 placas" */
+  /** "12 piezas en 3 placas" (o "… en 6 placas · 2 corridas") */
   function qtyText(q) {
-    return fmtN(q.pieces) + ' ' + plural(q.pieces, 'pieza', 'piezas') + ' en ' + fmtN(q.plates) + ' ' + plural(q.plates, 'placa', 'placas');
+    return fmtN(q.pieces) + ' ' + plural(q.pieces, 'pieza', 'piezas') + ' en ' + fmtN(q.plates) + ' ' + plural(q.plates, 'placa', 'placas') +
+      (q.runs > 1 ? ' · ' + fmtN(q.runs) + ' ' + plural(q.runs, 'corrida', 'corridas') : '');
   }
   /** Explicación en vivo de la relación elegida y de la unidad de cotización. */
   function qtyLive(s) {
     var eq = s.split
       ? fmtN(s.plates) + ' ' + plural(s.plates, 'placa', 'placas') + ' ÷ ' + fmtN(s.ppl) + ' ' + plural(s.ppl, 'placa', 'placas') + ' por pieza'
       : fmtN(s.plates) + ' ' + plural(s.plates, 'placa', 'placas') + ' × ' + fmtN(s.ppp) + ' ' + plural(s.ppp, 'pieza', 'piezas') + ' por placa';
+    var pre = s.runs > 1
+      ? fmtN(s.platesRun) + ' ' + plural(s.platesRun, 'placa', 'placas') + ' por corrida × ' + fmtN(s.runs) + ' ' + plural(s.runs, 'corrida', 'corridas') + ' = ' + fmtN(s.plates) + ' ' + plural(s.plates, 'placa', 'placas') + '. '
+      : '';
     var word = s.byPlate ? 'placa' : 'pieza';
-    return eq + ' = ' + fmtN(s.pieces) + ' ' + plural(s.pieces, 'pieza', 'piezas') + ' del pedido. Se cotiza por ' + word +
+    return pre + eq + ' = ' + fmtN(s.pieces) + ' ' + plural(s.pieces, 'pieza', 'piezas') + ' del pedido. Se cotiza por ' + word +
       ': el descuento por volumen cuenta ' + fmtN(s.units) + ' ' + plural(s.units, s.byPlate ? 'placa' : 'pieza', s.byPlate ? 'placas' : 'piezas') + '.';
   }
 
@@ -202,21 +206,22 @@
       return '<div class="line">' +
         '<div class="inp"><select aria-label="Material ' + (i + 1) + '" data-path="' + b + '.materialId" data-type="select">' +
         matOptions.map(function (o) { return '<option value="' + esc(o[0]) + '"' + (o[0] === l.materialId ? ' selected' : '') + '>' + esc(o[1]) + '</option>'; }).join('') + '</select></div>' +
-        '<div class="inp"><input aria-label="Gramos del material ' + (i + 1) + '" type="number" inputmode="decimal" step="any" min="0" data-path="' + b + '.g" data-type="number" value="' + esc(l.g) + '"><span class="suffix">g por placa</span></div>' +
+        '<div class="inp"><input aria-label="Gramos del material ' + (i + 1) + '" type="number" inputmode="decimal" step="any" min="0" data-path="' + b + '.g" data-type="number" value="' + esc(l.g) + '"><span class="suffix">g por corrida</span></div>' +
         (job.lines.length > 1 ? '<button type="button" class="icon-btn" data-act="rm-line" data-i="' + i + '" aria-label="Quitar material">×</button>' : '<span></span>') + '</div>';
     }).join('');
 
     var printer = cat.showPrinter ? field({ path: 'job.printerId', type: 'select', label: 'Impresora', options: cat.printers.map(function (p) { return [p.id, p.name]; }), wide: true }) : '';
 
     var print =
-      '<section class="card"><h2>Datos de la impresión</h2><p class="lead">Material y tiempo son los que muestra tu laminador para <b>una placa</b>; las placas son el <b>total a imprimir para todo el pedido</b>.</p>' +
+      '<section class="card"><h2>Datos de la impresión</h2><p class="lead">Material y tiempo son los <b>totales por corrida</b> — todo el proyecto, con todas sus placas, una vez — tal como los muestra el resumen de tu laminador.</p>' +
       '<div class="grid two" style="margin-bottom:14px">' + printer + '</div>' +
-      '<div class="label" style="margin-bottom:8px">Material y peso por placa</div>' + lines +
+      '<div class="label" style="margin-bottom:8px">Material total por corrida</div>' + lines +
       '<button type="button" class="btn small ghost" data-act="add-line">+ Agregar otro material</button>' +
       '<div class="grid" style="margin-top:16px">' +
-      field({ path: 'job.hours', label: 'Tiempo · horas', suffix: 'h' }) +
-      field({ path: 'job.minutes', label: 'Tiempo · minutos', suffix: 'min' }) +
-      field({ path: 'job.plates', label: 'Placas totales del pedido', step: '1', min: 1, hint: 'Placas a imprimir para cubrir todo el pedido. Al cargar un archivo se llenan con las que trae; súbelas si el pedido repite placas.' }) +
+      field({ path: 'job.hours', label: 'Tiempo por corrida · horas', suffix: 'h' }) +
+      field({ path: 'job.minutes', label: 'Tiempo por corrida · minutos', suffix: 'min' }) +
+      field({ path: 'job.plates', label: 'Placas por corrida', step: '1', min: 1, hint: 'Cuántas placas tiene el proyecto en cada corrida. Al cargar un archivo se llena con las que trae.' }) +
+      field({ path: 'job.runs', label: 'Corridas del proyecto', step: '1', min: 1, hint: 'Cuántas veces se imprime el proyecto completo para cubrir el pedido. Ej.: un archivo de 2 placas × 3 corridas = 6 placas.' }) +
       '</div></section>';
 
     // La relación entre placas y piezas la indica el usuario: el archivo del laminador sólo trae las placas.
@@ -551,8 +556,8 @@
       '<h2>Cómo se calcula el precio</h2>' +
       '<p>El cotizador sigue la estructura que coinciden en recomendar las guías de precios de impresión 3D: se calcula el <b>costo real</b> del trabajo y sobre él se aplica un margen. Todos los parámetros son editables en <i>Configuración del taller</i>.</p>' +
       '<h3>1. Costo de producción</h3>' +
-      '<pre>Material     = Σ gramos × (1 + merma) × precio_por_gramo\n' +
-      'Máquina      = horas × [ precio × (1 − rescate) / vida_útil + mantenimiento_por_hora ]\n' +
+      '<pre>Material     = Σ gramos_por_corrida × corridas × (1 + merma) × precio_por_gramo\n' +
+      'Máquina      = horas_por_corrida × corridas × [ precio × (1 − rescate) / vida_útil + mantenimiento_por_hora ]\n' +
       'Electricidad = horas × (watts / 1000) × precio_kWh\n' +
       'Producción   = Material + Máquina + Electricidad\n' +
       'Con fallas   = Producción / (1 − tasa_de_fallas)</pre>' +
@@ -576,7 +581,9 @@
       '<h3>Modo Taller y modo Cliente</h3>' +
       '<p>El precio del modo Cliente sale de <b>tarifas de venta</b> derivadas de tu configuración (precio por gramo de cada material, por hora de cada impresora, por placa y por pedido). Como el modelo es lineal, esas tarifas reproducen exactamente el mismo precio que el modo Taller, sin revelar costos, márgenes ni utilidad.</p>' +
       '<h3>Piezas y placas</h3>' +
-      '<p>Una pieza puede repartirse en varias placas y una placa puede llevar varias piezas. El costo físico (material, tiempo de máquina, electricidad, fallas y manejo por placa) depende de las <b>placas</b>; el postprocesado y sus insumos dependen de las <b>piezas</b>. El archivo del laminador sólo trae las placas, así que tú indicas la relación:</p>' +
+      '<p>El material y el tiempo se capturan como <b>totales por corrida</b>: una corrida es imprimir todas las placas del proyecto una vez, y el pedido puede repetir el proyecto varias <b>corridas</b>. Así, si el proyecto tiene placas distintas (por ejemplo, las tapas en una y las bases en otra), los totales del resumen del laminador ya las cubren todas.</p>' +
+      '<pre>Placas totales = placas_por_corrida × corridas</pre>' +
+      '<p>Una pieza puede repartirse en varias placas y una placa puede llevar varias piezas. El manejo y la purga dependen de las <b>placas totales</b>; el postprocesado y sus insumos dependen de las <b>piezas</b>. El archivo del laminador sólo trae las placas, así que tú indicas la relación:</p>' +
       '<pre>Varias piezas por placa      →  piezas = placas × piezas_por_placa\n' +
       'Una pieza en varias placas   →  piezas = placas ÷ placas_por_pieza</pre>' +
       '<p><b>Cotizar por</b> pieza o por placa define el precio unitario que se muestra y la cantidad con la que se cuenta el descuento por volumen. El costo del trabajo es el mismo; el total sólo cambia si esa cantidad hace que el descuento cambie de nivel.</p>' +

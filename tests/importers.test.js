@@ -33,29 +33,30 @@ test('archivo que no es ZIP', async () => {
   await assert.rejects(() => Importers.import3mf(b), /ZIP|3MF/);
 });
 
-test('toPerPlate: una placa concreta', () => {
+test('toRun: una placa concreta', () => {
   const res = { plates: [
     { index: 1, seconds: 4038, grams: 20.5, filaments: [{ type: 'PLA', color: '#fff', grams: 18.2 }, { type: 'PLA', color: '#000', grams: 2.3 }] },
     { index: 2, seconds: 7200, grams: 40, filaments: [{ type: 'PETG', color: '#f00', grams: 40 }] }
   ] };
-  const p2 = Importers.toPerPlate(res, 2);
+  const p2 = Importers.toRun(res, 2);
   assert.equal(p2.plates, 1);
   assert.equal(p2.hours, 2);
   assert.equal(p2.minutes, 0);
   close(p2.filaments[0].grams, 40);
 });
 
-test('toPerPlate: todas las placas (promedio) conserva los totales', () => {
+test('toRun: todas las placas se suman en una corrida (placas heterogéneas)', () => {
   const res = { plates: [
     { index: 1, seconds: 4038, grams: 20.5, filaments: [{ type: 'PLA', color: '#fff', grams: 20.5 }] },
     { index: 2, seconds: 7200, grams: 40, filaments: [{ type: 'PETG', color: '#f00', grams: 40 }] }
   ] };
-  const all = Importers.toPerPlate(res, 'all');
+  const all = Importers.toRun(res, 'all');
   assert.equal(all.plates, 2);
-  // tiempo total 11238 s = 187.3 min → promedio 93.65 min por placa
-  const totalMin = (all.hours * 60 + all.minutes) * all.plates;
-  assert.ok(Math.abs(totalMin - 11238 / 60) <= 1, `minutos totales ${totalMin}`);
-  const g = all.filaments.reduce((s, f) => s + f.grams, 0) * all.plates;
+  // tiempo total de la corrida: 11238 s = 187.3 min (suma, no promedio)
+  const totalMin = all.hours * 60 + all.minutes;
+  assert.ok(Math.abs(totalMin - 11238 / 60) <= 1, `minutos por corrida ${totalMin}`);
+  // gramos por corrida: 20.5 + 40 = 60.5 (suma, no promedio)
+  const g = all.filaments.reduce((s, f) => s + f.grams, 0);
   close(g, 60.5, 1e-9);
 });
 

@@ -109,16 +109,23 @@
   }
 
   /**
-   * Cantidades del trabajo. El costo físico (material, tiempo, máquina) depende de las PLACAS;
-   * el postprocesado y el precio unitario pueden depender de las PIEZAS. La relación entre ambas
-   * la indica el usuario (el archivo del laminador sólo trae las placas):
+   * Cantidades del trabajo. Los datos de impresión (gramos, tiempo) son TOTALES POR CORRIDA:
+   * una corrida es imprimir todas las placas del proyecto una vez, y el pedido puede repetir
+   * el proyecto `runs` veces. Así:
+   *   placas físicas totales = placas_por_corrida × corridas
+   * De las placas totales dependen el manejo por placa y la purga; de las corridas, el material
+   * y el tiempo de máquina; de las piezas, el postprocesado y el precio unitario.
+   * La relación entre placas y piezas la indica el usuario:
    *   rel 'multi' (por defecto): varias piezas en cada placa  → piezas = placas × piezas_por_placa
    *   rel 'split':               una pieza se reparte en varias placas → piezas = placas ÷ placas_por_pieza
    * `by` ('piece' | 'plate') indica por qué se cotiza: define el precio unitario que se muestra
    * y con qué cantidad se cuenta el descuento por volumen.
+   * Trabajos antiguos sin `runs` se toman como una sola corrida.
    */
   function jobShape(cfg, job) {
-    var plates = pos(job.plates);
+    var platesRun = pos(job.plates);
+    var runs = job.runs == null ? 1 : pos(job.runs);
+    var plates = platesRun * runs;
     var split = job.rel === 'split';
     var ppp = Math.max(1, Math.floor(pos(job.ppp)) || 1);
     var ppl = Math.max(1, pos(job.ppl) || 1);
@@ -126,13 +133,15 @@
     var byPlate = job.by === 'plate';
     return {
       plates: plates,
+      platesRun: platesRun,
+      runs: runs,
       split: split,
       ppp: ppp,
       ppl: ppl,
       pieces: pieces,
       byPlate: byPlate,
       units: byPlate ? plates : pieces,
-      minutesPerPlate: pos(job.hours) * 60 + pos(job.minutes)
+      minutesPerRun: pos(job.hours) * 60 + pos(job.minutes)
     };
   }
 
@@ -174,16 +183,15 @@
     var purgePerPlate = on('multicolor') ? pos(job.purgeG) : 0;
     var material = 0, gramsBilled = 0, gramsNet = 0;
     lines.forEach(function (l, i) {
-      var g = l.g * plates * (1 + waste);
+      var g = l.g * s.runs * (1 + waste);
       if (i === primary) g += purgePerPlate * plates;
-      gramsNet += l.g * plates;
+      gramsNet += l.g * s.runs;
       gramsBilled += g;
       material += g * costPerGram(l.mat);
     });
 
-    // ---- Máquina y energía ----
-    var minutes = s.minutesPerPlate + (on('multicolor') ? pos(job.extraMin) : 0);
-    var H = minutes / 60 * plates;
+    // ---- Máquina y energía ---- (tiempo por corrida × corridas; minutos extra por placa)
+    var H = (s.minutesPerRun * s.runs + (on('multicolor') ? pos(job.extraMin) : 0) * plates) / 60;
     var life = pos(printer.lifeH);
     var deprPerH = life > 0 ? pos(printer.price) * (1 - clamp(pos(printer.salvagePct), 0, 100) / 100) / life : 0;
     var depreciation = H * deprPerH;
@@ -227,7 +235,7 @@
     if (!lines.length) notes.push({ level: 'warn', text: 'No hay material seleccionado en la cotización.' });
 
     return {
-      plates: plates, pieces: pieces, byPlate: s.byPlate, units: s.units, hours: H, gramsNet: gramsNet, gramsBilled: gramsBilled, kwh: kwh,
+      plates: plates, platesRun: s.platesRun, runs: s.runs, pieces: pieces, byPlate: s.byPlate, units: s.units, hours: H, gramsNet: gramsNet, gramsBilled: gramsBilled, kwh: kwh,
       costs: {
         material: material, depreciation: depreciation, maintenance: maintenance, electricity: electricity,
         failure: failure, labor: labor, design: design, postLabor: postLabor, postSupplies: postSupplies,
@@ -304,15 +312,14 @@
     var multi = !!(rates.mods && rates.mods.multicolor);
     var s = jobShape(null, job);
     var plates = s.plates, pieces = s.pieces;
-    var minutes = s.minutesPerPlate + (multi ? pos(job.extraMin) : 0);
-    var H = minutes / 60 * plates;
+    var H = (s.minutesPerRun * s.runs + (multi ? pos(job.extraMin) : 0) * plates) / 60;
 
     var N = b.job + b.plate * plates;
     var gramsNet = 0, primary = null;
     (job.lines || []).forEach(function (l) {
       var m = findById(rates.mats, l.materialId);
       if (!m) return;
-      var g = pos(l.g) * plates;
+      var g = pos(l.g) * s.runs;
       gramsNet += g;
       N += g * m.pg;
       if (!primary || g > primary.g) primary = { m: m, g: g };
@@ -327,7 +334,7 @@
     var revenue = tail.service + tail.roundAdj;
     var up = unitPrices(revenue, s);
     return {
-      plates: plates, pieces: pieces, byPlate: s.byPlate, units: s.units, hours: H, gramsNet: gramsNet, N: N,
+      plates: plates, platesRun: s.platesRun, runs: s.runs, pieces: pieces, byPlate: s.byPlate, units: s.units, hours: H, gramsNet: gramsNet, N: N,
       rush: tail.rush, discountPct: tail.discountPct, discount: tail.discount,
       minApplied: tail.minApplied, service: tail.service, ship: tail.ship, roundAdj: tail.roundAdj,
       subtotal: tail.subtotal, tax: tail.tax, total: tail.total,

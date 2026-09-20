@@ -220,19 +220,20 @@
   }
 
   /**
-   * Convierte el resultado en datos por placa para el cotizador.
-   * which: 'all' (promedia todas las placas: el modelo es lineal, así los totales coinciden)
-   *        o el índice de placa (1, 2, …).
-   * Devuelve { plates, hours, minutes, filaments: [{ type, color, grams }] }  (gramos POR PLACA)
+   * Convierte el resultado en datos por corrida para el cotizador: una corrida es imprimir
+   * todas las placas seleccionadas una vez, así que tiempos y gramos se SUMAN.
+   * which: 'all' (todas las placas del archivo = una corrida) o el índice de placa (1, 2, …).
+   * Devuelve { plates, hours, minutes, filaments: [{ type, color, grams }] } — gramos y
+   * tiempo TOTALES por corrida; `plates` es cuántas placas tiene la corrida.
    */
-  function toPerPlate(result, which) {
+  function toRun(result, which) {
     let plates = result.plates;
     if (which !== 'all') {
       const sel = plates.filter(function (p) { return p.index === Number(which); });
       if (sel.length) plates = sel;
     }
     const n = plates.length || 1;
-    const seconds = plates.reduce(function (s, p) { return s + p.seconds; }, 0) / n;
+    const seconds = plates.reduce(function (s, p) { return s + p.seconds; }, 0);
     const byType = {};
     const order = [];
     plates.forEach(function (p) {
@@ -243,7 +244,7 @@
         byType[key].grams += f.grams;
       });
     });
-    const filaments = order.map(function (k) { return { type: byType[k].type, color: byType[k].color, grams: byType[k].grams / n }; });
+    const filaments = order.map(function (k) { return { type: byType[k].type, color: byType[k].color, grams: byType[k].grams }; });
     const totalMin = Math.round(seconds / 60);
     return { plates: n, hours: Math.floor(totalMin / 60), minutes: totalMin % 60, filaments: filaments };
   }
@@ -255,7 +256,7 @@
     parseSliceInfo: parseSliceInfo,
     parseGcodeStats: parseGcodeStats,
     parseDuration: parseDuration,
-    toPerPlate: toPerPlate,
+    toRun: toRun,
     listZip: listZip
   };
 });

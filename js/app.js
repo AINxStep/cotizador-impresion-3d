@@ -85,7 +85,7 @@
       S.job = {
         name: '', client: '', printerId: linkRates.machines[0].id,
         lines: [{ materialId: linkRates.mats[0].id, g: 0 }], hours: 0, minutes: 0, plates: 1,
-        rel: 'multi', ppp: 1, ppl: 1, by: 'piece',
+        runs: 1, rel: 'multi', ppp: 1, ppl: 1, by: 'piece',
         designH: 0, postMin: 0, supplies: 0, purgeG: 0, extraMin: 0, urgent: false, shipping: 0
       };
       return;
@@ -100,6 +100,15 @@
     S.job = deepMerge(Defaults.makeJob(S.cfg), loadJSON(LS_JOB) || {});
     var savedJob = loadJSON(LS_JOB);
     if (savedJob && Array.isArray(savedJob.lines) && savedJob.lines.length) S.job.lines = savedJob.lines;
+    // trabajos guardados antes de «corridas»: gramos y tiempo eran POR PLACA y `plates` era el
+    // total. Se convierten a totales por corrida conservando `plates` como placas del proyecto.
+    if (savedJob && savedJob.runs == null) {
+      var p = Math.max(1, Number(savedJob.plates) || 0);
+      S.job.lines.forEach(function (l) { l.g = (Number(l.g) || 0) * p; });
+      var tmin = ((Number(savedJob.hours) || 0) * 60 + (Number(savedJob.minutes) || 0)) * p;
+      S.job.hours = Math.floor(tmin / 60); S.job.minutes = tmin % 60;
+      S.job.runs = 1;
+    }
   }
 
   var saveTimer = null;
@@ -246,7 +255,7 @@
 
   function applyImport() {
     var imp = S.imp;
-    var per = Importers.toPerPlate(imp.res, imp.which);
+    var per = Importers.toRun(imp.res, imp.which);
     var cat = UI.catalog(activeRates());
     var lines = [], mapping = [];
     per.filaments.forEach(function (f) {
@@ -272,8 +281,8 @@
     if (!file) return;
     Importers.importFile(file).then(function (res) {
       S.imp = { res: res, name: file.name, which: 'all', mapping: [], relSet: false, autoPpl: false };
-      // archivo nuevo = trabajo nuevo: la relación entre placas y piezas se vuelve a indicar
-      S.job.rel = 'multi'; S.job.ppp = 1; S.job.ppl = 1;
+      // archivo nuevo = trabajo nuevo: una corrida (todas sus placas) y la relación se vuelve a indicar
+      S.job.rel = 'multi'; S.job.ppp = 1; S.job.ppl = 1; S.job.runs = 1;
       applyImport();
       renderApp();
       persist();

@@ -31,8 +31,8 @@ Es una página estática (HTML + CSS + JavaScript, sin servidor ni dependencias)
 ## Qué incluye
 
 - Desglose por concepto y gráfica de "¿a dónde se va el precio?", con utilidad, margen real y utilidad por hora de máquina.
-- **Lee el archivo del laminador:** arrastra un `.gcode.3mf` (Bambu Studio, OrcaSlicer) o un `.gcode` (Bambu, Orca, PrusaSlicer) y se llenan peso por filamento, tiempo y número de placas. El archivo se procesa en el navegador; no se sube a ningún servidor. [Paso a paso para generarlo](#cómo-generar-el-archivo-para-subirlo-a-la-página).
-- **Piezas y placas:** una pieza puede repartirse en varias placas y una placa puede llevar varias piezas (llaveros, por ejemplo). Indicas cómo se relacionan y eliges si cotizas **por pieza o por placa**. [Cómo funciona](#piezas-y-placas).
+- **Lee el archivo del laminador:** arrastra un `.gcode.3mf` (Bambu Studio, OrcaSlicer) o un `.gcode` (Bambu, Orca, PrusaSlicer) y se llenan peso por filamento, tiempo y placas por corrida. El archivo se procesa en el navegador; no se sube a ningún servidor. [Paso a paso para generarlo](#cómo-generar-el-archivo-para-subirlo-a-la-página).
+- **Corridas, placas y piezas:** el material y el tiempo se capturan como **totales por corrida** (todo el proyecto con todas sus placas, aunque sean distintas entre sí), más las **placas por corrida** y las **corridas** que repiten el proyecto para cubrir el pedido. Las piezas se deducen de las placas totales según la relación que indiques, y eliges si cotizas **por pieza o por placa**. [Cómo funciona](#piezas-y-placas).
 - Varias impresoras (depreciación, mantenimiento y consumo eléctrico por hora) y varios materiales (costo por gramo).
 - Módulos opcionales que se activan o desactivan: diseño y modelado, postprocesado e insumos, multicolor y purga, empaque, comisiones de plataforma o cobro, pedido mínimo, recargo por urgencia y descuento por volumen.
 - Margen sobre el precio **o** multiplicador sobre el costo, con la equivalencia entre ambos.
@@ -86,7 +86,7 @@ La página no lee el modelo 3D (STL, OBJ ni un 3MF de proyecto). Lee el **archiv
 
 1. Abre https://ainxstep.github.io/cotizador-impresion-3d/ (o tu propia publicación) en el modo **Taller**, pestaña *Cotizar*.
 2. En la tarjeta **Archivo del laminador**, arrastra el archivo o haz clic para elegirlo. Se lee en tu navegador; no se sube a ningún servidor.
-3. Se llenan solos el peso por filamento, el tiempo y el número de placas (y el nombre del proyecto, si estaba vacío). Con varias placas puedes usar todas o sólo una en el desplegable *Usar en la cotización*.
+3. Se llenan solos el peso por filamento, el tiempo y las placas por corrida (y el nombre del proyecto, si estaba vacío) — los **totales de una corrida**: todas las placas del archivo sumadas. Con varias placas puedes usar todas o sólo una en el desplegable *Usar en la cotización*, y si el pedido repite el proyecto, ajusta las *corridas*.
 4. Revisa el **material asignado**: si el tipo de filamento del archivo (PLA, PETG…) coincide con el nombre de un material de tu configuración, se elige solo; si no, se usa el primero y se indica "sin coincidencia". Cámbialo en el desplegable si hace falta.
 5. **Indica cómo se relacionan las placas con las piezas.** El archivo sólo trae las placas; no puede saber si forman una sola pieza o varias. Si trae más de una, la página te pregunta con dos botones (*Las N placas forman una sola pieza* / *Cada placa lleva sus propias piezas*); también puedes cambiarlo en la tarjeta *Piezas y placas*. Ver [Piezas y placas](#piezas-y-placas).
 6. Captura lo que el archivo no trae: diseño, postprocesado, envío y urgencia.
@@ -106,7 +106,13 @@ El peso que reporta el laminador ya incluye la torre de purga y el material que 
 
 ## Piezas y placas
 
-Un mismo trabajo puede verse de dos maneras: por **placas** (cada corrida de impresión) o por **piezas** (lo que recibe el cliente). El archivo del laminador sólo dice cuántas placas hay, así que la relación entre ambas la indicas tú en la tarjeta *Piezas y placas*:
+Los datos de impresión se capturan como **totales por corrida**: una corrida es imprimir todas las placas del proyecto una vez. Así no importa que las placas sean distintas entre sí (por ejemplo, las tapas en una placa y las bases en otra): el resumen del laminador ya trae los gramos y el tiempo de todo el conjunto. En la tarjeta *Datos de la impresión* capturas:
+
+- **Material y tiempo por corrida:** los totales del proyecto, tal como los muestra el resumen del laminador.
+- **Placas por corrida:** cuántas placas tiene el proyecto en cada corrida.
+- **Corridas del proyecto:** cuántas veces se imprime el proyecto completo para cubrir el pedido. Si la misma placa se imprime tres veces, es una corrida de una placa × 3 corridas.
+
+Las **placas totales** del trabajo son placas por corrida × corridas; de ellas dependen el manejo por placa y la purga. Las **piezas** se deducen de las placas totales según la relación que indiques en la tarjeta *Piezas y placas*:
 
 | Caso | Ejemplo | Cómo se indica | Piezas |
 |---|---|---|---|
@@ -120,15 +126,15 @@ Un mismo trabajo puede verse de dos maneras: por **placas** (cada corrida de imp
 - **El precio unitario** que se muestra en el resultado, en el texto copiado y en la hoja para imprimir: *precio por pieza* o *precio por placa* (el otro se muestra como equivalencia en el modo Taller).
 - **La cantidad con la que se aplica el descuento por volumen.** Los niveles de la configuración (por ejemplo, desde 5 y desde 10) cuentan piezas o placas según lo elegido.
 
-Qué depende de qué: el **material, el tiempo de máquina, la electricidad, las fallas y el manejo por placa** dependen de las **placas**; el **postprocesado y sus insumos** dependen de las **piezas**. Cambiar la relación o la unidad de cotización no cambia el costo del trabajo; el total sólo se mueve si el descuento por volumen cambia de nivel o si hay postprocesado (que se cobra por pieza).
+Qué depende de qué: el **material, el tiempo de máquina, la electricidad y las fallas** dependen de las **corridas**; el **manejo y la purga** dependen de las **placas totales**; el **postprocesado y sus insumos** dependen de las **piezas**. Cambiar la relación o la unidad de cotización no cambia el costo del trabajo; el total sólo se mueve si el descuento por volumen cambia de nivel o si hay postprocesado (que se cobra por pieza).
 
-Cuando cargas un archivo, la página reinicia la relación (varias piezas por placa, 1 pieza por placa) y, si el archivo trae más de una placa, te pide indicarla. Los enlaces para clientes y las sesiones guardadas antes de esta función siguen funcionando: se interpretan como *varias piezas por placa* y *cotizar por pieza*, igual que antes.
+Cuando cargas un archivo, la página reinicia la relación (varias piezas por placa, 1 pieza por placa), lo toma como **una corrida** y, si el archivo trae más de una placa, te pide indicarla. Las sesiones guardadas antes de esta función siguen funcionando: los gramos y el tiempo por placa se convierten a totales por corrida al abrir la página.
 
 ## Cómo se calcula
 
 ```
-Material     = Σ gramos × (1 + merma) × precio_por_gramo
-Máquina      = horas × [ precio × (1 − rescate) / vida_útil + mantenimiento_por_hora ]
+Material     = Σ gramos_por_corrida × corridas × (1 + merma) × precio_por_gramo
+Máquina      = horas_por_corrida × corridas × [ precio × (1 − rescate) / vida_útil + mantenimiento_por_hora ]
 Electricidad = horas × (watts / 1000) × precio_kWh
 Con fallas   = (Material + Máquina + Electricidad) / (1 − tasa_de_fallas)
 
