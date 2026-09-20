@@ -361,9 +361,9 @@
       '<div class="label">¿A dónde se va el precio?</div>' + bar + legend +
       '<details open><summary>Desglose detallado</summary>' + tbl + '</details>' +
       '<div class="btn-row"><button type="button" class="btn primary" data-act="copy-quote">Copiar cotización</button>' +
-      '<button type="button" class="btn" data-act="print">Imprimir / guardar PDF</button>' +
+      '<button type="button" class="btn" data-act="pdf">Descargar PDF</button>' +
       '<button type="button" class="btn" data-act="mode" data-mode="cliente">Ver como cliente</button></div>' +
-      '<p class="sub" style="margin-top:10px">La cotización que copias o imprimes nunca incluye tus costos internos.</p></section>';
+      '<p class="sub" style="margin-top:10px">La cotización que copias o descargas nunca incluye tus costos internos.</p></section>';
   }
 
   function resultClient(q, rates) {
@@ -396,7 +396,7 @@
       '<div class="client-lines">' + lines.map(function (l) { return '<div><span>' + l[0] + '</span><span>' + l[1] + '</span></div>'; }).join('') + '</div>' +
       '<p class="sub" style="margin-top:12px">' + foot.join('<br>') + '</p>' +
       '<div class="btn-row"><button type="button" class="btn primary" data-act="copy-quote">Copiar cotización</button>' +
-      '<button type="button" class="btn" data-act="print">Imprimir / guardar PDF</button></div></section>';
+      '<button type="button" class="btn" data-act="pdf">Descargar PDF</button></div></section>';
   }
 
   // Texto plano y hoja imprimible (siempre versión cliente)
@@ -448,6 +448,31 @@
       (q.taxOn ? '<tr><td colspan="3" style="text-align:right">Subtotal</td><td>' + m(q.subtotal) + '</td></tr><tr><td colspan="3" style="text-align:right">IVA (' + fmtN(d.money.taxRate, 1) + ' %)</td><td>' + m(q.tax) + '</td></tr>' : '') +
       '<tr class="grand"><td colspan="3" style="text-align:right">Total</td><td>' + m(q.total) + '</td></tr></tfoot></table>' +
       '<div class="foot">' + esc(foot.join('\n')) + '</div></div>';
+  }
+
+  /** Datos de la cotización en formato neutro para generar el PDF (js/pdf.js). */
+  function pdfSpec(d) {
+    var m = function (x) { return money(x, d.money.code); };
+    var q = d.q, j = S.job;
+    var rows = [{
+      concept: 'Impresión 3D' + (d.materials ? ' · ' + d.materials : ''),
+      sub: qtyText(q) + ' · precio por ' + unitWord(q),
+      qty: fmtN(q.units), unit: m(q.unit), amount: m(q.service + q.roundAdj)
+    }];
+    if (q.ship > 0) rows.push({ concept: 'Envío', sub: '', qty: '1', unit: m(q.ship), amount: m(q.ship) });
+    var totals = [];
+    if (q.taxOn) {
+      totals.push(['Subtotal', m(q.subtotal)]);
+      totals.push(['IVA (' + fmtN(d.money.taxRate, 1) + ' %)', m(q.tax)]);
+    }
+    totals.push(['TOTAL', m(q.total)]);
+    var foot = [];
+    if (d.biz.validityDays) foot.push('Vigencia de la cotización: ' + fmtN(d.biz.validityDays) + ' días.');
+    if (d.biz.notes) foot.push(d.biz.notes);
+    return {
+      title: 'COTIZACIÓN', biz: d.biz.name || '', contact: d.biz.contact || '', date: d.date,
+      project: j.name || '—', client: j.client || '—', rows: rows, totals: totals, foot: foot
+    };
   }
 
   // ------------------------------------------------------------------
@@ -620,6 +645,6 @@
     plural: plural, qtyText: qtyText, qtyLive: qtyLive,
     catalog: catalog, curCode: curCode, header: header, tabs: tabs, jobForm: jobForm, hasData: hasData,
     resultTaller: resultTaller, resultClient: resultClient, customerData: customerData, quoteText: quoteText,
-    sheetHtml: sheetHtml, configView: configView, methodView: methodView, idFor: idFor
+    sheetHtml: sheetHtml, pdfSpec: pdfSpec, configView: configView, methodView: methodView, idFor: idFor
   };
 })(typeof self !== 'undefined' ? self : (typeof globalThis !== 'undefined' ? globalThis : this));

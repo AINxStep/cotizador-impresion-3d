@@ -388,7 +388,17 @@
       case 'copy-quote':
         if (lastView) copyText(UI.quoteText(UI.customerData(lastView.q, lastView.biz, lastView.money, lastView.mats)), 'Cotización copiada');
         break;
-      case 'print': window.print(); break;
+      case 'pdf': { // genera el PDF de la cotización para descarga (sin diálogo de impresión)
+        if (!lastView || !UI.hasData()) { toast('Captura los datos del trabajo primero'); break; }
+        var spec = UI.pdfSpec(UI.customerData(lastView.q, lastView.biz, lastView.money, lastView.mats));
+        var blob = new Blob([PDF.bytes(PDF.build(spec))], { type: 'application/pdf' });
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'cotizacion' + (S.job.name ? '-' + S.job.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') : '') + '.pdf';
+        a.click();
+        setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+        break;
+      }
       case 'gen-link': S.link = buildLink(); renderApp(); toast('Enlace generado'); break;
       case 'copy-link': copyText(S.link, 'Enlace copiado'); break;
       case 'export-cfg': {

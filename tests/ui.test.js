@@ -179,6 +179,22 @@ test('cada campo de Configuración lleva un icono de ayuda con explicación', ()
   assert.match(cv, /data-tip="Valor inicial del IVA/, 'las casillas también llevan ayuda');
 });
 
+test('pdfSpec arma la hoja del cliente sin costos internos', () => {
+  const job = bindJob({ name: 'Soporte', client: 'Ana' });
+  const q = Calc.computeQuote(cfg, job);
+  const d = UI.customerData(q, cfg.biz, cfg.money, cfg.materials);
+  const spec = UI.pdfSpec(d);
+  assert.match(spec.rows[0].concept, /Impresión 3D/);
+  assert.equal(spec.totals[spec.totals.length - 1][0], 'TOTAL');
+  assert.ok(spec.totals.some(function (t) { return /IVA/.test(t[0]); }), 'con IVA activo hay línea de IVA');
+  const json = JSON.stringify(spec);
+  assert.ok(!/utilidad|margen|costo/i.test(json), 'no lleva datos internos del taller');
+  // sin IVA el PDF tampoco lo menciona
+  const q0 = Calc.computeQuote(cfg, Object.assign(job, { taxOn: false }));
+  const spec0 = UI.pdfSpec(UI.customerData(q0, cfg.biz, cfg.money, cfg.materials));
+  assert.ok(!spec0.totals.some(function (t) { return /IVA/.test(t[0]); }), 'sin IVA no hay línea de IVA');
+});
+
 test('la primera visita abre en Configuración con aviso de bienvenida', () => {
   UI.bind({ cfg, job: jobBase(), mode: 'taller', tab: 'config', fromLink: false, imp: null, firstRun: true });
   const h = UI.configView({ link: '', confirmReset: false });
