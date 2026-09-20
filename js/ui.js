@@ -99,14 +99,18 @@
     var inner = type === 'textarea' ? control :
       '<div class="inp">' + (o.prefix ? '<span class="prefix">' + esc(o.prefix) + '</span>' : '') + control +
       (o.suffix ? '<span class="suffix">' + esc(o.suffix) + '</span>' : '') + '</div>';
-    return '<div class="field' + (o.wide ? ' wide' : '') + '"><label for="' + id + '">' + esc(o.label) + '</label>' + inner +
-      (o.hint ? '<small>' + o.hint + '</small>' : '') + (o.live ? '<small data-live="' + o.live + '"' + (o.liveI !== undefined ? ' data-i="' + o.liveI + '"' : '') + '></small>' : '') + '</div>';
+    return '<div class="field' + (o.wide ? ' wide' : '') + '"><label for="' + id + '">' + esc(o.label) + helpIcon(o.hint) + '</label>' + inner +
+      (o.live ? '<small data-live="' + o.live + '"' + (o.liveI !== undefined ? ' data-i="' + o.liveI + '"' : '') + '></small>' : '') + '</div>';
+  }
+
+  function helpIcon(tip) {
+    return tip ? ' <span class="help" tabindex="0" role="button" data-tip="' + esc(tip) + '" aria-label="Ayuda">?</span>' : '';
   }
 
   function check(o) {
     var v = getPath(S, o.path);
-    return '<label class="check"><input type="checkbox" data-path="' + o.path + '" data-type="check" id="' + idFor(o.path) + '"' +
-      (o.rerender ? ' data-rerender' : '') + (v ? ' checked' : '') + '> <span>' + o.label + '</span></label>';
+    return '<span class="check-row"><label class="check"><input type="checkbox" data-path="' + o.path + '" data-type="check" id="' + idFor(o.path) + '"' +
+      (o.rerender ? ' data-rerender' : '') + (v ? ' checked' : '') + '> <span>' + o.label + '</span></label>' + helpIcon(o.hint) + '</span>';
   }
 
   // ------------------------------------------------------------------
@@ -178,7 +182,7 @@
     if (res.plates.length > 1) {
       var opts = '<option value="all"' + (imp.which === 'all' ? ' selected' : '') + '>Todas las placas (' + res.plates.length + ')</option>' +
         res.plates.map(function (p) { return '<option value="' + p.index + '"' + (String(imp.which) === String(p.index) ? ' selected' : '') + '>Sólo la placa ' + p.index + '</option>'; }).join('');
-      sel = '<div class="field" style="max-width:320px"><label for="imp-sel">Usar en la cotización</label><div class="inp"><select id="imp-sel" data-act="imp-sel">' + opts + '</select></div></div>';
+      sel = '<div class="field" style="max-width:320px"><label for="imp-sel">Usar en la cotización' + helpIcon('Con varias placas: usa todas como una corrida, o sólo la placa elegida y ajusta las corridas para repetirla.') + '</label><div class="inp"><select id="imp-sel" data-act="imp-sel">' + opts + '</select></div></div>';
     }
     var warn = (res.warnings || []).map(function (w) { return '<div class="err">' + esc(w) + '</div>'; }).join('');
     var map = (imp.mapping || []).length ? '<div style="color:var(--muted)">Material asignado: ' + imp.mapping.map(esc).join(' · ') + '. Cámbialo abajo si no coincide.</div>' : '';
@@ -210,16 +214,16 @@
         (job.lines.length > 1 ? '<button type="button" class="icon-btn" data-act="rm-line" data-i="' + i + '" aria-label="Quitar material">×</button>' : '<span></span>') + '</div>';
     }).join('');
 
-    var printer = cat.showPrinter ? field({ path: 'job.printerId', type: 'select', label: 'Impresora', options: cat.printers.map(function (p) { return [p.id, p.name]; }), wide: true }) : '';
+    var printer = cat.showPrinter ? field({ path: 'job.printerId', type: 'select', label: 'Impresora', options: cat.printers.map(function (p) { return [p.id, p.name]; }), wide: true, hint: 'Máquina con la que se imprimirá; define el costo por hora de tu catálogo.' }) : '';
 
     var print =
       '<section class="card"><h2>Datos de la impresión</h2><p class="lead">Material y tiempo son los <b>totales por corrida</b> — todo el proyecto, con todas sus placas, una vez — tal como los muestra el resumen de tu laminador.</p>' +
       '<div class="grid two" style="margin-bottom:14px">' + printer + '</div>' +
-      '<div class="label" style="margin-bottom:8px">Material total por corrida</div>' + lines +
+      '<div class="label" style="margin-bottom:8px">Material total por corrida' + helpIcon('Gramos de cada material que consume una corrida completa (todas las placas del proyecto una vez). Agrega una línea por material o color.') + '</div>' + lines +
       '<button type="button" class="btn small ghost" data-act="add-line">+ Agregar otro material</button>' +
       '<div class="grid" style="margin-top:16px">' +
-      field({ path: 'job.hours', label: 'Tiempo por corrida · horas', suffix: 'h' }) +
-      field({ path: 'job.minutes', label: 'Tiempo por corrida · minutos', suffix: 'min' }) +
+      field({ path: 'job.hours', label: 'Tiempo por corrida · horas', suffix: 'h', hint: 'Horas que tarda una corrida completa (todas las placas del proyecto una vez), según el laminador.' }) +
+      field({ path: 'job.minutes', label: 'Tiempo por corrida · minutos', suffix: 'min', hint: 'Minutos que tarda una corrida completa; junto con las horas forma el tiempo total por corrida.' }) +
       field({ path: 'job.plates', label: 'Placas por corrida', step: '1', min: 1, hint: 'Cuántas placas tiene el proyecto en cada corrida. Al cargar un archivo se llena con las que trae.' }) +
       field({ path: 'job.runs', label: 'Corridas del proyecto', step: '1', min: 1, hint: 'Cuántas veces se imprime el proyecto completo para cubrir el pedido. Ej.: un archivo de 2 placas × 3 corridas = 6 placas.' }) +
       '</div></section>';
@@ -229,38 +233,39 @@
       '<p class="lead">Las piezas del pedido se deducen de las placas: una pieza puede repartirse en varias placas, y una placa puede llevar varias piezas (por ejemplo, llaveros). Indica cuál es tu caso y por cuál unidad quieres cotizar.</p>' +
       '<div class="grid two">' +
       field({ path: 'job.rel', type: 'select', label: 'Relación entre placas y piezas', rerender: true, wide: true,
+        hint: 'Cómo se reparten las piezas del pedido en las placas: varias piezas por placa (llaveros) o una pieza en varias placas (figuras grandes).',
         options: [['multi', 'Cada placa lleva una o varias piezas'], ['split', 'Una pieza se reparte en varias placas']] }) +
       (job.rel === 'split'
         ? field({ path: 'job.ppl', label: 'Placas por pieza', step: 'any', min: 1, hint: 'Cuántas placas necesita una pieza. Ej. 3 si cada pieza ocupa 3 placas.' })
-        : field({ path: 'job.ppp', label: 'Piezas por placa', step: '1', min: 1, hint: 'Ej. 12 si caben 12 llaveros en cada placa.' })) +
+        : field({ path: 'job.ppp', label: 'Piezas por placa', step: '1', min: 1, hint: 'Piezas terminadas que salen de cada placa. Ej. 12 si caben 12 llaveros.' })) +
       field({ path: 'job.by', type: 'select', label: 'Cotizar por', options: [['piece', 'Pieza'], ['plate', 'Placa']],
         hint: 'Define el precio unitario y la cantidad con la que se aplica el descuento por volumen.' }) +
       '</div><div class="note info" data-live="qty" style="margin:14px 0 0"></div></section>';
 
     var extras = [];
-    if (mods.design) extras.push(field({ path: 'job.designH', label: 'Diseño / modelado', suffix: 'h', hint: 'Horas de trabajo de diseño para este pedido.' }));
+    if (mods.design) extras.push(field({ path: 'job.designH', label: 'Diseño / modelado', suffix: 'h', hint: 'Horas de diseño o modelado de este pedido; se cobran a la tarifa del módulo Diseño.' }));
     if (mods.post) {
-      extras.push(field({ path: 'job.postMin', label: 'Postprocesado por pieza', suffix: 'min', hint: 'Lijado, pintura, ensamblado, retirar soportes…' }));
+      extras.push(field({ path: 'job.postMin', label: 'Postprocesado por pieza', suffix: 'min', hint: 'Minutos por pieza (lijado, pintura, ensamble, retirar soportes); se cobran a la tarifa del módulo.' }));
       extras.push(field({ path: 'job.supplies', label: 'Insumos por pieza', prefix: code, hint: 'Lijas, pintura, tornillos, inserts…' }));
     }
     if (S.mode === 'taller' && S.cfg.modules.multicolor.on) {
-      extras.push(field({ path: 'job.purgeG', label: 'Purga extra por placa', suffix: 'g', hint: 'Sólo lo que NO esté ya en el peso del laminador.' }));
-      extras.push(field({ path: 'job.extraMin', label: 'Minutos extra por placa', suffix: 'min', hint: 'Cambios de color o de boquilla no incluidos en el tiempo.' }));
+      extras.push(field({ path: 'job.purgeG', label: 'Purga extra por placa', suffix: 'g', hint: 'Gramos de purga por cada placa física que el laminador NO incluyó en el peso.' }));
+      extras.push(field({ path: 'job.extraMin', label: 'Minutos extra por placa', suffix: 'min', hint: 'Minutos por cada placa física (cambios de color o boquilla) no incluidos en el tiempo.' }));
     }
-    if (S.mode === 'taller') extras.push(field({ path: 'job.shipping', label: 'Envío que se cobra', prefix: code, hint: 'Se suma sin margen. Déjalo en 0 si no aplica.' }));
-    var urgent = mods.rush ? '<div class="field wide">' + check({ path: 'job.urgent', label: 'Entrega urgente' + (S.mode === 'taller' ? ' (+' + fmtN(S.cfg.modules.rush.pct, 1) + ' %)' : (rates.tail.rushPct ? ' (+' + fmtN(rates.tail.rushPct, 1) + ' %)' : '')) }) + '</div>' : '';
+    if (S.mode === 'taller') extras.push(field({ path: 'job.shipping', label: 'Envío que se cobra', prefix: code, hint: 'Se suma al final sin margen ni descuentos. Déjalo en 0 si no aplica.' }));
+    var urgent = mods.rush ? '<div class="field wide">' + check({ path: 'job.urgent', label: 'Entrega urgente' + (S.mode === 'taller' ? ' (+' + fmtN(S.cfg.modules.rush.pct, 1) + ' %)' : (rates.tail.rushPct ? ' (+' + fmtN(rates.tail.rushPct, 1) + ' %)' : '')), hint: 'Aplica el recargo por urgencia definido en la configuración del taller.' }) + '</div>' : '';
     // IVA por cotización: sólo en Taller y cuando el taller sí cobra IVA (el cliente no decide eso)
     var iva = (S.mode === 'taller' && S.cfg.money.taxOn)
-      ? '<div class="field wide">' + check({ path: 'job.taxOn', label: 'Cobrar IVA (' + fmtN(S.cfg.money.taxRate, 1) + ' %) en esta cotización' }) +
-        '<small>Para trabajos entre particulares suele no cobrarse: al apagarlo no se suma ni se menciona en la cotización.</small></div>' : '';
+      ? '<div class="field wide">' + check({ path: 'job.taxOn', label: 'Cobrar IVA (' + fmtN(S.cfg.money.taxRate, 1) + ' %) en esta cotización',
+        hint: 'Suma el IVA al total. Para trabajos entre particulares suele no cobrarse: al apagarlo no se suma ni se menciona en la cotización.' }) + '</div>' : '';
     var more = (extras.length || urgent || iva)
       ? '<section class="card"><h2>Trabajo adicional</h2><div class="grid">' + extras.join('') + urgent + iva + '</div></section>' : '';
 
     var project = '<section class="card"><div class="card-head"><h2>Proyecto</h2>' +
       '<button type="button" class="btn small ' + (S.confirmNew ? 'danger' : 'ghost') + '" data-act="new-quote">' +
       (S.confirmNew ? '¿Borrar todo? Pulsa de nuevo' : 'Nueva cotización') + '</button></div><div class="grid two">' +
-      field({ path: 'job.name', type: 'text', label: 'Nombre del proyecto', placeholder: 'Ej. Soporte para audífonos' }) +
-      field({ path: 'job.client', type: 'text', label: 'Cliente', placeholder: 'Opcional' }) + '</div></section>';
+      field({ path: 'job.name', type: 'text', label: 'Nombre del proyecto', placeholder: 'Ej. Soporte para audífonos', hint: 'Nombre interno del trabajo; encabeza la cotización del cliente.' }) +
+      field({ path: 'job.client', type: 'text', label: 'Cliente', placeholder: 'Opcional', hint: 'A quién va dirigida la cotización; aparece en el texto y la hoja.' }) + '</div></section>';
 
     return project + '<section class="card"><h2>Archivo del laminador <span class="tag">opcional</span></h2>' +
       '<p class="lead">Carga el archivo y se llenan peso, tiempo y placas automáticamente.</p>' + importBox() + '</section>' + print + relBlock + more;
@@ -453,23 +458,23 @@
     var cur = code;
 
     var biz = '<section class="card"><h2>Tu negocio y moneda</h2><p class="lead">Estos datos aparecen en la cotización que compartes con tus clientes.</p><div class="grid two">' +
-      field({ path: 'cfg.biz.name', type: 'text', label: 'Nombre del negocio', placeholder: 'Ej. Taller 3D Norte' }) +
-      field({ path: 'cfg.biz.contact', type: 'text', label: 'Contacto', placeholder: 'WhatsApp, correo o sitio web' }) +
-      field({ path: 'cfg.biz.notes', type: 'textarea', label: 'Notas al pie de la cotización', wide: true }) +
+      field({ path: 'cfg.biz.name', type: 'text', label: 'Nombre del negocio', placeholder: 'Ej. Taller 3D Norte', hint: 'Aparece como emisor en la cotización que compartes.' }) +
+      field({ path: 'cfg.biz.contact', type: 'text', label: 'Contacto', placeholder: 'WhatsApp, correo o sitio web', hint: 'Aparece al pie de la cotización para que te localicen.' }) +
+      field({ path: 'cfg.biz.notes', type: 'textarea', label: 'Notas al pie de la cotización', wide: true, hint: 'Texto libre al pie: condiciones, tiempos de entrega, políticas.' }) +
       '</div><div class="grid" style="margin-top:14px">' +
-      field({ path: 'cfg.money.code', type: 'select', label: 'Moneda', options: Defaults.CURRENCIES, rerender: true }) +
-      field({ path: 'cfg.money.taxRate', label: 'IVA / impuesto', suffix: '%', hint: 'En México el IVA general es 16 %.' }) +
-      field({ path: 'cfg.money.rounding', type: 'select-num', label: 'Redondear precio hacia arriba a', options: [[0, 'Sin redondeo'], [1, '1'], [5, '5'], [10, '10'], [50, '50']] }) +
-      field({ path: 'cfg.biz.validityDays', label: 'Vigencia de la cotización', suffix: 'días' }) +
-      '<div class="field wide">' + check({ path: 'cfg.money.taxOn', label: 'Cobrar IVA por defecto (se puede apagar en cada cotización)', rerender: false }) + '</div></div></section>';
+      field({ path: 'cfg.money.code', type: 'select', label: 'Moneda', options: Defaults.CURRENCIES, rerender: true, hint: 'Moneda en que se expresan todos los precios.' }) +
+      field({ path: 'cfg.money.taxRate', label: 'IVA / impuesto', suffix: '%', hint: 'Tasa del impuesto sobre las ventas. En México el IVA general es 16 %.' }) +
+      field({ path: 'cfg.money.rounding', type: 'select-num', label: 'Redondear precio hacia arriba a', options: [[0, 'Sin redondeo'], [1, '1'], [5, '5'], [10, '10'], [50, '50']], hint: 'Redondea el precio hacia arriba al múltiplo elegido, antes del IVA.' }) +
+      field({ path: 'cfg.biz.validityDays', label: 'Vigencia de la cotización', suffix: 'días', hint: 'Días de validez que se muestran al pie de la cotización.' }) +
+      '<div class="field wide">' + check({ path: 'cfg.money.taxOn', label: 'Cobrar IVA por defecto (se puede apagar en cada cotización)', rerender: false, hint: 'Valor inicial del IVA en cada cotización nueva; en cada trabajo se puede apagar.' }) + '</div></div></section>';
 
     var printers = '<section class="card"><h2>Impresoras</h2><p class="lead">El costo por hora de cada máquina sale de su precio, vida útil, mantenimiento y consumo eléctrico.</p>' +
       cfg.printers.map(function (p, i) {
         var b = 'cfg.printers.' + i;
-        return '<div class="item"><div class="item-head">' + field({ path: b + '.name', type: 'text', label: 'Nombre de la impresora' }) +
+        return '<div class="item"><div class="item-head">' + field({ path: b + '.name', type: 'text', label: 'Nombre de la impresora', hint: 'Con este nombre la eliges al cotizar.' }) +
           (cfg.printers.length > 1 ? '<button type="button" class="icon-btn" data-act="rm-printer" data-i="' + i + '" aria-label="Eliminar impresora">×</button>' : '') + '</div>' +
           '<div class="grid">' +
-          field({ path: b + '.price', label: 'Precio de compra', prefix: cur }) +
+          field({ path: b + '.price', label: 'Precio de compra', prefix: cur, hint: 'Base de la depreciación por hora de máquina.' }) +
           field({ path: b + '.lifeH', label: 'Vida útil estimada', suffix: 'h', hint: 'Horas de impresión antes de reemplazarla. 3,000–5,000 h es habitual.' }) +
           field({ path: b + '.salvagePct', label: 'Valor de rescate', suffix: '%', hint: 'Lo que crees recuperar al venderla.' }) +
           field({ path: b + '.powerW', label: 'Consumo promedio', suffix: 'W', hint: 'Promedio durante la impresión, no el pico. Mídelo con un wattmetro.' }) +
@@ -481,10 +486,10 @@
     var mats = '<section class="card"><h2>Materiales</h2><p class="lead">Precio del carrete completo; el costo por gramo se calcula solo.</p>' +
       cfg.materials.map(function (mt, i) {
         var b = 'cfg.materials.' + i;
-        return '<div class="item"><div class="item-head">' + field({ path: b + '.name', type: 'text', label: 'Material' }) +
+        return '<div class="item"><div class="item-head">' + field({ path: b + '.name', type: 'text', label: 'Material', hint: 'Nombre con que lo eliges al cotizar; si coincide con el tipo del archivo (PLA, PETG…) se asigna solo.' }) +
           (cfg.materials.length > 1 ? '<button type="button" class="icon-btn" data-act="rm-material" data-i="' + i + '" aria-label="Eliminar material">×</button>' : '') + '</div>' +
-          '<div class="grid">' + field({ path: b + '.spoolPrice', label: 'Precio del carrete', prefix: cur }) +
-          field({ path: b + '.spoolG', label: 'Peso del carrete', suffix: 'g', hint: '' }) + '</div>' +
+          '<div class="grid">' + field({ path: b + '.spoolPrice', label: 'Precio del carrete', prefix: cur, hint: 'Precio del carrete completo.' }) +
+          field({ path: b + '.spoolG', label: 'Peso del carrete', suffix: 'g', hint: 'Gramos netos del carrete; con el precio define el costo por gramo.' }) + '</div>' +
           '<small data-live="mat-pg" data-i="' + i + '" style="display:block;margin-top:10px;color:var(--muted)"></small></div>';
       }).join('') +
       '<div class="btn-row"><button type="button" class="btn small" data-act="add-material">+ Agregar material</button></div></section>';
@@ -501,7 +506,7 @@
 
     var pr = cfg.pricing;
     var pricing = '<section class="card"><h2>Precio y utilidad</h2><div class="grid">' +
-      field({ path: 'cfg.pricing.method', type: 'select', label: 'Método', options: [['margin', 'Margen sobre el precio'], ['markup', 'Multiplicador sobre el costo']], rerender: true }) +
+      field({ path: 'cfg.pricing.method', type: 'select', label: 'Método', options: [['margin', 'Margen sobre el precio'], ['markup', 'Multiplicador sobre el costo']], rerender: true, hint: 'Margen: la utilidad es un porcentaje del precio final. Multiplicador: se multiplica el costo.' }) +
       (pr.method === 'markup'
         ? field({ path: 'cfg.pricing.markup', label: 'Multiplicador', prefix: '×', step: '0.05', hint: 'Típico: 2× producción en serie, 2.5–3× piezas únicas.' })
         : field({ path: 'cfg.pricing.marginPct', label: 'Margen deseado', suffix: '%', hint: 'Utilidad ÷ precio. Sumar 30 % al costo NO es un margen de 30 %.' })) +
@@ -519,19 +524,19 @@
         '<small style="color:var(--muted)">La cantidad cuenta piezas o placas, según lo que se elija en «Cotizar por» al hacer la cotización.</small>' +
         M.discounts.tiers.map(function (t, i) {
           var b = 'cfg.modules.discounts.tiers.' + i;
-          return '<div class="tier">' + field({ path: b + '.min', label: 'Desde (cantidad)', step: '1', min: 1 }) + field({ path: b + '.pct', label: 'Descuento', suffix: '%' }) +
+          return '<div class="tier">' + field({ path: b + '.min', label: 'Desde (cantidad)', step: '1', min: 1, hint: 'Cantidad del pedido a partir de la cual aplica este nivel.' }) + field({ path: b + '.pct', label: 'Descuento', suffix: '%', hint: 'Porcentaje que se resta del precio base.' }) +
             '<button type="button" class="icon-btn" data-act="rm-tier" data-i="' + i + '" aria-label="Quitar nivel" style="margin-top:20px">×</button></div>';
         }).join('') + '<div class="btn-row"><button type="button" class="btn small ghost" data-act="add-tier">+ Agregar nivel</button></div></div>';
     }
     var modules = '<section class="card"><h2>Módulos opcionales</h2><p class="lead">Activa sólo lo que uses; cada módulo agrega campos a la cotización.</p>' +
-      modCard('design', 'Diseño y modelado 3D', 'Cobra las horas de modelado o preparación de archivos.', field({ path: 'cfg.modules.design.rate', label: 'Tarifa de diseño', prefix: cur, suffix: '/h' })) +
-      modCard('post', 'Postprocesado', 'Lijado, pintura, ensamblado e insumos por pieza.', field({ path: 'cfg.modules.post.rate', label: 'Tarifa de postprocesado', prefix: cur, suffix: '/h' })) +
+      modCard('design', 'Diseño y modelado 3D', 'Cobra las horas de modelado o preparación de archivos.', field({ path: 'cfg.modules.design.rate', label: 'Tarifa de diseño', prefix: cur, suffix: '/h', hint: 'Precio por hora de diseño o modelado.' })) +
+      modCard('post', 'Postprocesado', 'Lijado, pintura, ensamblado e insumos por pieza.', field({ path: 'cfg.modules.post.rate', label: 'Tarifa de postprocesado', prefix: cur, suffix: '/h', hint: 'Precio por hora de postprocesado.' })) +
       modCard('multicolor', 'Multicolor y purga (AMS / cambio de boquilla)', 'Agrega campos para purga y tiempo extra que no estén ya en el laminado.', '') +
-      modCard('packaging', 'Empaque', 'Caja, relleno y etiquetas por pedido.', field({ path: 'cfg.modules.packaging.perOrder', label: 'Costo de empaque por pedido', prefix: cur })) +
+      modCard('packaging', 'Empaque', 'Caja, relleno y etiquetas por pedido.', field({ path: 'cfg.modules.packaging.perOrder', label: 'Costo de empaque por pedido', prefix: cur, hint: 'Caja, relleno y etiquetas por pedido.' })) +
       modCard('fees', 'Comisiones de plataforma o cobro', 'Se suman al precio para que, tras pagarlas, tu utilidad no baje.',
-        field({ path: 'cfg.modules.fees.pct', label: 'Comisión', suffix: '%' }) + field({ path: 'cfg.modules.fees.fixed', label: 'Cargo fijo por venta', prefix: cur })) +
-      modCard('minimum', 'Pedido mínimo', 'Cubre el trabajo fijo de laminar, preparar y empacar piezas pequeñas.', field({ path: 'cfg.modules.minimum.amount', label: 'Monto mínimo (antes de IVA)', prefix: cur })) +
-      modCard('rush', 'Recargo por urgencia', 'Casilla “entrega urgente” en la cotización.', field({ path: 'cfg.modules.rush.pct', label: 'Recargo', suffix: '%' })) +
+        field({ path: 'cfg.modules.fees.pct', label: 'Comisión', suffix: '%', hint: 'Porcentaje que cobra la plataforma o la pasarela de pago.' }) + field({ path: 'cfg.modules.fees.fixed', label: 'Cargo fijo por venta', prefix: cur, hint: 'Cargo fijo por transacción o venta.' })) +
+      modCard('minimum', 'Pedido mínimo', 'Cubre el trabajo fijo de laminar, preparar y empacar piezas pequeñas.', field({ path: 'cfg.modules.minimum.amount', label: 'Monto mínimo (antes de IVA)', prefix: cur, hint: 'Si el precio queda por debajo de este monto, se cobra el mínimo.' })) +
+      modCard('rush', 'Recargo por urgencia', 'Casilla “entrega urgente” en la cotización.', field({ path: 'cfg.modules.rush.pct', label: 'Recargo', suffix: '%', hint: 'Porcentaje extra sobre el precio cuando se marca «entrega urgente».' })) +
       modCard('discounts', 'Descuento por volumen', 'Reduce el precio según la cantidad del pedido, en piezas o en placas (según por cuál unidad cotices).', tiers) + '</section>';
 
     var link = extra.link
@@ -548,7 +553,11 @@
       '<label class="btn">Importar configuración<input type="file" accept="application/json,.json" data-act="import-cfg" class="sr-only"></label>' +
       '<button type="button" class="btn danger" data-act="reset">' + (extra.confirmReset ? '¿Seguro? Pulsa de nuevo para restablecer' : 'Restablecer valores de ejemplo') + '</button></div></section>';
 
-    return '<div class="prose" style="max-width:none"><div class="banner" style="background:var(--warn-soft);color:var(--warn)">Todos los valores iniciales son ejemplos. Reemplázalos con los de tu taller para que la cotización refleje tus costos reales.</div></div>' +
+    var welcome = S.firstRun
+      ? '<div class="banner"><span><b>Bienvenido.</b> Primero configura tu taller: impresoras, materiales, costos y margen — los valores iniciales son ejemplos.</span>' +
+        '<button type="button" data-act="first-done">Listo, ir a cotizar</button></div>' : '';
+    return '<div class="prose" style="max-width:none">' + welcome +
+      '<div class="banner" style="background:var(--warn-soft);color:var(--warn)">Todos los valores iniciales son ejemplos. Reemplázalos con los de tu taller para que la cotización refleje tus costos reales.</div></div>' +
       '<div class="grid two" style="align-items:start"><div>' + biz + printers + mats + '</div><div>' + base + pricing + modules + share + backup + '</div></div>';
   }
 
@@ -612,4 +621,4 @@
     resultTaller: resultTaller, resultClient: resultClient, customerData: customerData, quoteText: quoteText,
     sheetHtml: sheetHtml, configView: configView, methodView: methodView, idFor: idFor
   };
-})(typeof self !== 'undefined' ? self : this);
+})(typeof self !== 'undefined' ? self : (typeof globalThis !== 'undefined' ? globalThis : this));

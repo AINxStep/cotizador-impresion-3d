@@ -62,7 +62,8 @@
   // ------------------------------------------------------------------
   var S = {
     cfg: null, job: null, mode: 'taller', tab: 'cotizar', fromLink: false,
-    linkRates: null, imp: null, link: '', confirmReset: false, confirmNew: false, theme: 'auto'
+    linkRates: null, imp: null, link: '', confirmReset: false, confirmNew: false, theme: 'auto',
+    firstRun: false
   };
   UI.bind(S);
 
@@ -91,9 +92,13 @@
       };
       return;
     }
-    S.cfg = deepMerge(Defaults.makeConfig(), loadJSON(LS_CFG) || {});
-    // los arreglos guardados reemplazan a los de ejemplo (deepMerge sólo mezcla objetos)
+    // Primera visita (sin config guardada): se abre en Configuración para que el
+    // usuario ajuste su taller antes de cotizar. Los enlaces de cliente no pasan por aquí.
     var saved = loadJSON(LS_CFG);
+    S.firstRun = !saved;
+    if (S.firstRun) S.tab = 'config';
+    S.cfg = deepMerge(Defaults.makeConfig(), saved || {});
+    // los arreglos guardados reemplazan a los de ejemplo (deepMerge sólo mezcla objetos)
     if (saved) ['printers', 'materials'].forEach(function (k) { if (Array.isArray(saved[k]) && saved[k].length) S.cfg[k] = saved[k]; });
     if (saved && saved.modules && saved.modules.discounts && Array.isArray(saved.modules.discounts.tiers)) {
       S.cfg.modules.discounts.tiers = saved.modules.discounts.tiers;
@@ -341,7 +346,10 @@
         applyTheme(); renderApp();
         break;
       case 'tab':
-        S.tab = el.getAttribute('data-tab'); S.confirmReset = false; S.confirmNew = false; renderApp(); window.scrollTo(0, 0);
+        S.tab = el.getAttribute('data-tab'); S.confirmReset = false; S.confirmNew = false; S.firstRun = false; renderApp(); window.scrollTo(0, 0);
+        break;
+      case 'first-done': // el usuario ya vio el aviso de bienvenida: pasa a cotizar
+        S.firstRun = false; S.tab = 'cotizar'; renderApp(); window.scrollTo(0, 0);
         break;
       case 'rel-split': // las placas del archivo forman una sola pieza
         S.job.rel = 'split'; S.job.ppl = Math.max(1, Number(S.job.plates) || 1);

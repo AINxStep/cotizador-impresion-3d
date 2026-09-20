@@ -3,6 +3,9 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const Calc = require('../js/calc.js');
 const Defaults = require('../js/defaults.js');
+// ui.js captura Calc y Defaults como globales al cargarse, igual que en el navegador
+globalThis.Calc = Calc;
+globalThis.Defaults = Defaults;
 const mod = require('../js/ui.js');
 const UI = mod.UI || globalThis.UI;
 
@@ -151,4 +154,37 @@ test('el archivo con varias placas pide indicar la relación con las piezas', ()
   const uno = bindJob({ plates: 1 });
   UI.bind({ cfg, job: uno, mode: 'taller', tab: 'cotizar', fromLink: false, imp: { res, name: 'a.gcode.3mf', which: 1, mapping: [], relSet: false } });
   assert.ok(!UI.jobForm(null).includes('data-act="rel-split"'), 'con una sola placa no hay nada que preguntar');
+});
+
+test('cada campo de Cotizar lleva un icono de ayuda con explicación', () => {
+  bindJob();
+  const form = UI.jobForm(null);
+  const labels = form.match(/<label for="/g) || [];
+  const helped = form.match(/<label for="[^"]+">[^<]*<span class="help"/g) || [];
+  assert.ok(labels.length > 8, 'hay campos en el formulario');
+  assert.equal(helped.length, labels.length, 'cada campo tiene su icono «?»');
+  assert.match(form, /data-tip="[^"]{10,}/, 'las ayudas traen texto concreto');
+  // las casillas también llevan ayuda, fuera del <label> para no alternar la casilla al tocarla
+  assert.match(form, /check-row[^]*?Entrega urgente[^]*?data-tip="Aplica el recargo/);
+  assert.match(form, /data-tip="Suma el IVA al total/);
+});
+
+test('cada campo de Configuración lleva un icono de ayuda con explicación', () => {
+  UI.bind({ cfg, job: jobBase(), mode: 'taller', tab: 'config', fromLink: false, imp: null });
+  const cv = UI.configView({ link: '', confirmReset: false });
+  const labels = cv.match(/<label for="/g) || [];
+  const helped = cv.match(/<label for="[^"]+">[^<]*<span class="help"/g) || [];
+  assert.ok(labels.length > 15, 'hay campos en la configuración');
+  assert.equal(helped.length, labels.length, 'cada campo tiene su icono «?»');
+  assert.match(cv, /data-tip="Valor inicial del IVA/, 'las casillas también llevan ayuda');
+});
+
+test('la primera visita abre en Configuración con aviso de bienvenida', () => {
+  UI.bind({ cfg, job: jobBase(), mode: 'taller', tab: 'config', fromLink: false, imp: null, firstRun: true });
+  const h = UI.configView({ link: '', confirmReset: false });
+  assert.match(h, /Bienvenido/);
+  assert.match(h, /data-act="first-done"/);
+  UI.bind({ cfg, job: jobBase(), mode: 'taller', tab: 'config', fromLink: false, imp: null, firstRun: false });
+  assert.ok(!UI.configView({ link: '', confirmReset: false }).includes('first-done'),
+    'sin el aviso cuando ya existe configuración guardada');
 });
