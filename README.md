@@ -178,6 +178,8 @@ Para compartir enlaces con clientes usa la versión publicada, porque un enlace 
 2. En *Build and deployment* elige **Deploy from a branch**, rama `main` y carpeta `/ (root)`.
 3. En un par de minutos queda disponible en `https://<tu-usuario>.github.io/<nombre-del-repositorio>/`.
 
+> **Al modificar JS o CSS:** los scripts y la hoja de estilos se cargan con una versión en la URL (`js/app.js?v=3`, `css/styles.css?v=3` en `index.html`) para romper la caché del navegador. **Incrementa ese número** (`?v=4`, `?v=5`…) en cada cambio que toque `js/` o `css/`; si no, los visitantes pueden quedarse con una mezcla de archivos viejos y nuevos.
+
 ## Pruebas
 
 ```bash
