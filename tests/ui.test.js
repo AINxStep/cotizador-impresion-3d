@@ -264,3 +264,10 @@ test('el enlace de cotización se genera desde Cotizar; Configuración sólo tie
   assert.ok(!UI.configView({ link: 'https://x.test/#c=abc', linkKind: 'quote', confirmReset: false }).includes('link-out'),
     'un enlace de cotización no se muestra en la tarjeta de Configuración');
 });
+
+test('el resultado del taller ofrece capturar la vista como PNG', () => {
+  bindJob({ name: 'X' });
+  const res = UI.resultTaller(Calc.computeQuote(cfg, jobBase()), cfg);
+  assert.match(res, /data-act="png"/);
+  assert.match(res, /Capturar PNG/);
+});

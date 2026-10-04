@@ -369,6 +369,7 @@
       '<details open><summary>Desglose detallado</summary>' + tbl + '</details>' +
       '<div class="btn-row"><button type="button" class="btn primary" data-act="copy-quote">Copiar cotización</button>' +
       '<button type="button" class="btn" data-act="pdf">Descargar PDF</button>' +
+      '<button type="button" class="btn" data-act="png">Capturar PNG</button>' +
       '<button type="button" class="btn" data-act="gen-quote-link">Enlace de esta cotización</button>' +
       '<button type="button" class="btn" data-act="mode" data-mode="cliente">Ver como cliente</button></div>' +
       (S.linkKind === 'quote' && S.link

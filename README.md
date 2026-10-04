@@ -37,7 +37,7 @@ Es una página estática (HTML + CSS + JavaScript, sin servidor ni dependencias)
 - Módulos opcionales que se activan o desactivan: diseño y modelado, postprocesado e insumos, multicolor y purga, empaque, comisiones de plataforma o cobro, pedido mínimo, recargo por urgencia y descuento por volumen.
 - Margen sobre el precio **o** multiplicador sobre el costo, con la equivalencia entre ambos.
 - Moneda configurable (MXN por defecto), IVA opcional y redondeo del precio hacia arriba. El IVA se puede apagar **por cotización** — útil para trabajos entre particulares: al desmarcarlo no se suma ni se menciona en la cotización del cliente.
-- Cotización para el cliente: copiar como texto o **descargar como PDF** con un clic — el documento se genera en el navegador, sin diálogo de impresión (siempre sin costos internos).
+- Cotización para el cliente: copiar como texto, **descargar como PDF** o **capturar la pantalla como PNG** con un clic — todo se genera en el navegador, sin diálogo de impresión (siempre sin costos internos).
 - Enlace para clientes, respaldo de la configuración en un archivo JSON y selector de tema claro, oscuro o automático.
 - Botón **Nueva cotización**: limpia los datos del trabajo (pesos, tiempos y archivo importado) para empezar de cero sin restos de la cotización anterior.
 - Tu configuración y el trabajo en curso se guardan sólo en tu navegador (`localStorage`).
@@ -203,6 +203,7 @@ css/styles.css        Estilos (claro/oscuro, móvil, impresión)
 js/calc.js            Motor de cálculo (sin dependencias, corre en navegador y Node)
 js/importers.js       Lectura de .gcode.3mf y .gcode (ZIP mínimo, sin librerías)
 js/pdf.js             Generación del PDF de la cotización (sin librerías)
+js/capture.js         Captura de la vista como imagen PNG (SVG foreignObject, sin librerías)
 js/defaults.js        Valores iniciales de ejemplo
 js/ui.js              Constructores de HTML y formato
 js/app.js             Estado, eventos y persistencia

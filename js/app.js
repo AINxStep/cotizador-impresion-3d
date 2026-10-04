@@ -2,7 +2,7 @@
 (function () {
   'use strict';
 
-  var Calc = window.Calc, Importers = window.Importers, Defaults = window.Defaults, UI = window.UI;
+  var Calc = window.Calc, Importers = window.Importers, Defaults = window.Defaults, UI = window.UI, Capture = window.Capture;
   var LS_CFG = 'cot3d.cfg.v1';
   var LS_JOB = 'cot3d.job.v1';
   var LS_THEME = 'cot3d.theme.v1';
@@ -422,6 +422,18 @@
         a.download = 'cotizacion' + (S.job.name ? '-' + S.job.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') : '') + '.pdf';
         a.click();
         setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+        break;
+      }
+      case 'png': { // captura la vista completa de la página como imagen PNG
+        var node = document.getElementById('app');
+        toast('Generando imagen…');
+        Capture.elementToPng(node, 2).then(function (b) {
+          var a = document.createElement('a');
+          a.href = URL.createObjectURL(b);
+          a.download = 'cotizacion' + (S.job.name ? '-' + S.job.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') : '') + '.png';
+          a.click();
+          setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+        }).catch(function () { toast('No se pudo generar la imagen'); });
         break;
       }
       case 'gen-quote-link':
