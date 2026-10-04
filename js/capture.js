@@ -9,8 +9,11 @@
     if (src.nodeType !== 1) return;
     var cs = getComputedStyle(src), css = '';
     for (var i = 0; i < cs.length; i++) {
-      var p = cs[i];
-      css += p + ':' + cs.getPropertyValue(p) + ';';
+      var p = cs[i], v = cs.getPropertyValue(p);
+      // los url() (p. ej. la flecha de los selects, un data-URI) no pueden cargar
+      // recursos dentro de foreignObject y tumban la imagen completa: se omiten
+      if (v.indexOf('url(') >= 0) continue;
+      css += p + ':' + v + ';';
     }
     dst.setAttribute('style', css);
     var tag = src.tagName;
