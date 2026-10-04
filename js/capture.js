@@ -45,10 +45,10 @@
       new XMLSerializer().serializeToString(clone) +
       '</foreignObject></svg>';
     return new Promise(function (resolve, reject) {
-      var url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml;charset=utf-8' }));
+      // data: URL — con blob: los navegadores Chromium manchan el canvas (tainted)
+      // cuando el SVG lleva foreignObject y toBlob lanza SecurityError
       var img = new Image();
       img.onload = function () {
-        URL.revokeObjectURL(url);
         try {
           var canvas = document.createElement('canvas');
           canvas.width = w * scale;
@@ -64,8 +64,8 @@
           canvas.toBlob(function (b) { b ? resolve(b) : reject(new Error('canvas vacío')); }, 'image/png');
         } catch (e) { reject(e); }
       };
-      img.onerror = function () { URL.revokeObjectURL(url); reject(new Error('no se pudo renderizar la vista')); };
-      img.src = url;
+      img.onerror = function () { reject(new Error('no se pudo renderizar la vista')); };
+      img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
     });
   }
 
