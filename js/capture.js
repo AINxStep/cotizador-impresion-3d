@@ -52,8 +52,7 @@
     if (wrap) {
       var wr = wrap.getBoundingClientRect();
       cropX = Math.max(0, Math.floor(wr.left - rect.left - 16)); // 16px = padding lateral del wrap
-      var contentW = Math.ceil(wr.right - wr.left) + 32;
-      if (cropX + contentW < w) w = cropX + contentW;
+      w = Math.min(Math.ceil(wr.right - wr.left) + 32, w - cropX);
     }
     return new Promise(function (resolve, reject) {
       // data: URL — con blob: los navegadores Chromium manchan el canvas (tainted)
