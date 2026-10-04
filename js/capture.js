@@ -45,6 +45,16 @@
       '<foreignObject x="0" y="0" width="' + w + '" height="' + h + '">' +
       new XMLSerializer().serializeToString(clone) +
       '</foreignObject></svg>';
+    // recorte horizontal al contenido central: en ventanas anchas la página deja
+    // márgenes vacíos que sólo ensucian la imagen
+    var wrap = el.querySelector('main .wrap');
+    var cropX = 0;
+    if (wrap) {
+      var wr = wrap.getBoundingClientRect();
+      cropX = Math.max(0, Math.floor(wr.left - rect.left - 16)); // 16px = padding lateral del wrap
+      var contentW = Math.ceil(wr.right - wr.left) + 32;
+      if (cropX + contentW < w) w = cropX + contentW;
+    }
     return new Promise(function (resolve, reject) {
       // data: URL — con blob: los navegadores Chromium manchan el canvas (tainted)
       // cuando el SVG lleva foreignObject y toBlob lanza SecurityError
@@ -61,7 +71,7 @@
             ctx.fillRect(0, 0, w, h);
           }
           ctx.scale(scale, scale);
-          ctx.drawImage(img, 0, 0);
+          ctx.drawImage(img, -cropX, 0);
           canvas.toBlob(function (b) { b ? resolve(b) : reject(new Error('canvas vacío')); }, 'image/png');
         } catch (e) { reject(e); }
       };
