@@ -39,7 +39,8 @@
     cloneStyled(el, clone);
     clone.setAttribute('xmlns', 'http://www.w3.org/1999/xhtml');
     var rect = el.getBoundingClientRect();
-    var w = Math.ceil(rect.width), h = Math.ceil(rect.height);
+    // si el contenido desborda el ancho visible, cubre el ancho real para no recortar
+    var w = Math.ceil(Math.max(rect.width, el.scrollWidth)), h = Math.ceil(rect.height);
     var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + w + '" height="' + h + '">' +
       '<foreignObject x="0" y="0" width="' + w + '" height="' + h + '">' +
       new XMLSerializer().serializeToString(clone) +
