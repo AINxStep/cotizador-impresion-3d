@@ -111,14 +111,16 @@
     S.firstRun = !saved;
     if (S.firstRun) S.tab = 'config';
     S.cfg = deepMerge(Defaults.makeConfig(), saved || {});
-    // los arreglos guardados reemplazan a los de ejemplo (deepMerge sólo mezcla objetos)
-    if (saved) ['printers', 'materials'].forEach(function (k) { if (Array.isArray(saved[k]) && saved[k].length) S.cfg[k] = saved[k]; });
-    if (saved && saved.modules && saved.modules.discounts && Array.isArray(saved.modules.discounts.tiers)) {
-      S.cfg.modules.discounts.tiers = saved.modules.discounts.tiers;
+    // deepMerge ya reemplaza los arreglos guardados (sólo mezcla objetos); si vienen
+    // vacíos —config corrupta— se conservan los de ejemplo para no quedar sin catálogo
+    if (saved) {
+      var fresh = null;
+      ['printers', 'materials'].forEach(function (k) {
+        if (Array.isArray(saved[k]) && !saved[k].length) { fresh = fresh || Defaults.makeConfig(); S.cfg[k] = fresh[k]; }
+      });
     }
-    S.job = deepMerge(Defaults.makeJob(S.cfg), loadJSON(LS_JOB) || {});
     var savedJob = loadJSON(LS_JOB);
-    if (savedJob && Array.isArray(savedJob.lines) && savedJob.lines.length) S.job.lines = savedJob.lines;
+    S.job = deepMerge(Defaults.makeJob(S.cfg), savedJob || {});
     // trabajos guardados antes de «corridas»: gramos y tiempo eran POR PLACA y `plates` era el
     // total. Se convierten a totales por corrida conservando `plates` como placas del proyecto.
     if (savedJob && savedJob.runs == null) {

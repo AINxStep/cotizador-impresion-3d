@@ -124,7 +124,7 @@
    */
   function jobShape(cfg, job) {
     var platesRun = pos(job.plates);
-    var runs = job.runs == null ? 1 : pos(job.runs);
+    var runs = job.runs == null ? 1 : Math.max(1, pos(job.runs));
     var plates = platesRun * runs;
     var split = job.rel === 'split';
     var ppp = Math.max(1, Math.floor(pos(job.ppp)) || 1);

@@ -431,6 +431,9 @@ test('valores desconocidos de relación o de "cotizar por" usan los valores por 
   assert.equal(corridas.plates, 6, 'placas totales = placas por corrida × corridas');
   assert.equal(corridas.pieces, 30);
   assert.equal(corridas.runs, 3);
+  const cero = Calc.jobShape(null, { plates: 2, runs: 0, rel: 'multi', ppp: 5 });
+  assert.equal(cero.runs, 1, 'corridas en 0 o negativas se toman como 1');
+  assert.equal(cero.plates, 2);
 });
 
 test('modo Cliente = modo Taller con cualquier relación, "cotizar por" y descuentos', () => {
